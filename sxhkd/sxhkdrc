@@ -268,17 +268,20 @@ ctrl + shift + Escape
 #################################################################
 
 #Scrot
-Print
-    scrot 'ArcoLinux-%Y-%m-%d-%s_screenshot_$wx$h.jpg' -e 'mv $f $$(xdg-user-dir PICTURES)'
+# Print
+#     scrot 'ArcoLinux-%Y-%m-%d-%s_screenshot_$wx$h.jpg' -e 'mv $f $$(xdg-user-dir PICTURES)'
 
 #screeenshooter
-ctrl + Print
-     xfce4-screenshooter
+# ctrl + Print
+#      xfce4-screenshooter
 
 #Gnome-Screenshot
-ctrl + shift + Print
-     gnome-screenshot -i
+# ctrl + shift + Print
+#      gnome-screenshot -i
 
+#Gnome-Screenshot
+super + p
+     gnome-screenshot -a
 
 #################################################################
 #     FUNCTION KEYS
