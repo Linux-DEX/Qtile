@@ -514,6 +514,10 @@ def init_widgets_list():
             update_interval=5,
             background=colors[1]
         ),
+        widget.Battery(
+            format = "{percent:0.1%}",
+            foreground = "#1CFFB7"
+        ),
         widget.Spacer(length=8),
         widget.Systray(padding=3),
         widget.Spacer(length=8),
