@@ -1,49 +1,21 @@
-# Copyright (c) 2010 Aldo Cortesi
-# Copyright (c) 2010, 2014 dequis
-# Copyright (c) 2012 Randall Ma
-# Copyright (c) 2012-2014 Tycho Andersen
-# Copyright (c) 2012 Craig Barnes
-# Copyright (c) 2013 horsik
-# Copyright (c) 2013 Tao Sauvage
-#
-# Permission is hereby granted, free of charge, to any person obtaining a copy
-# of this software and associated documentation files (the "Software"), to deal
-# in the Software without restriction, including without limitation the rights
-# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-# copies of the Software, and to permit persons to whom the Software is
-# furnished to do so, subject to the following conditions:
-#
-# The above copyright notice and this permission notice shall be included in
-# all copies or substantial portions of the Software.
-#
-# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-# SOFTWARE.
-
 
 import os
 import re
 import socket
 import subprocess
 from typing import List  # noqa: F401
-from libqtile import layout, bar, widget, hook
+from libqtile import layout, bar, widget, hook, qtile
 from libqtile.config import Click, Drag, Group, Key, Match, Screen, Rule, KeyChord
-from libqtile.command import lazy
+from libqtile.lazy import lazy
 from libqtile.widget import Spacer
 from qtile_extras import widget
 from qtile_extras.widget.decorations import BorderDecoration
-# from qtile_extras.widget.decorations import RectDecoration
-# from qtile_extras.widget import StatusNotifier
 from libqtile.lazy import lazy
 from libqtile.utils import guess_terminal
-from libqtile import qtile
 import arcobattery
+from qtile_extras.widget.decorations import RectDecoration
 
-# mod4 or mod = super key
+#mod4 or mod = super key
 mod = "mod4"
 mod1 = "alt"
 mod2 = "control"
@@ -56,23 +28,15 @@ def window_to_prev_group(qtile):
         i = qtile.groups.index(qtile.currentGroup)
         qtile.currentWindow.togroup(qtile.groups[i - 1].name)
 
-
 @lazy.function
 def window_to_next_group(qtile):
     if qtile.currentWindow is not None:
         i = qtile.groups.index(qtile.currentGroup)
         qtile.currentWindow.togroup(qtile.groups[i + 1].name)
 
-@lazy.function
-def minimize_all(qtile):
-    for win in qtile.current_group.windows:
-        if hasattr(win, "toggle_minimize"):
-            win.toggle_minimize()
-
-
 keys = [
-
-    Key([mod, "shift"], "m", minimize_all(), desc="Toggle hide/show all windows on current group"),
+    
+    # Key([mod, "shift"], "m", minimize_all(), desc="Toggle hide/show all windows on current group"),
 
 
 
@@ -211,8 +175,7 @@ keys = [
     # multiple stack panes
     Key([mod, "shift"], "space", lazy.layout.toggle_split(),
         desc="Toggle between split and unsplit sides of stack"),
-]
-
+    ]
 
 def window_to_previous_screen(qtile, switch_group=False, switch_screen=False):
     i = qtile.screens.index(qtile.current_screen)
@@ -222,7 +185,6 @@ def window_to_previous_screen(qtile, switch_group=False, switch_screen=False):
         if switch_screen == True:
             qtile.cmd_to_screen(i - 1)
 
-
 def window_to_next_screen(qtile, switch_group=False, switch_screen=False):
     i = qtile.screens.index(qtile.current_screen)
     if i + 1 != len(qtile.screens):
@@ -231,6 +193,11 @@ def window_to_next_screen(qtile, switch_group=False, switch_screen=False):
         if switch_screen == True:
             qtile.cmd_to_screen(i + 1)
 
+# keys.extend([
+#     # MOVE WINDOW TO NEXT SCREEN
+#     Key([mod,"shift"], "Right", lazy.function(window_to_next_screen, switch_screen=True)),
+#     Key([mod,"shift"], "Left", lazy.function(window_to_previous_screen, switch_screen=True)),
+# ])
 
 keys.extend([
     # MOVE WINDOW TO NEXT SCREEN
@@ -250,16 +217,15 @@ groups = []
 group_names = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "0",]
 
 # FOR AZERTY KEYBOARDS
-# group_names = ["ampersand", "eacute", "quotedbl", "apostrophe", "parenleft", "section", "egrave", "exclam", "ccedilla", "agrave",]
+#group_names = ["ampersand", "eacute", "quotedbl", "apostrophe", "parenleft", "section", "egrave", "exclam", "ccedilla", "agrave",]
 
-# group_labels = [ "Ⅰ ","Ⅱ ","Ⅲ ","Ⅳ ","Ⅴ ","Ⅵ ","Ⅶ ","Ⅷ ","Ⅸ ","Ⅹ ",]
-group_labels = ["१ ", "२ ", "३ ", "४ ", "५ ", "६ ", "७ ", "८ ", "९ ", "० ",]
+group_labels = ["1 ", "2 ", "3 ", "4 ", "5 ", "6 ", "7 ", "8 ", "9 ", "0",]
 # group_labels = ["", "", "", "", "", "", "", "", "", "",]
-# group_labels = ["Web", "Edit/chat", "Image", "Gimp", "Meld", "Video", "Vb", "Files", "Mail", "Music",]
+# group_labels = ["१ ", "२ ", "३ ", "४ ", "५ ", "६ ", "७ ", "८ ", "९ ", "० ",]
+#group_labels = ["Web", "Edit/chat", "Image", "Gimp", "Meld", "Video", "Vb", "Files", "Mail", "Music",]
 
-group_layouts = ["monadtall", "monadtall", "monadtall", "monadtall",
-                 "monadtall", "monadtall", "monadtall", "monadtall", "monadtall", "monadtall",]
-# group_layouts = ["monadtall", "matrix", "monadtall", "bsp", "monadtall", "matrix", "monadtall", "bsp", "monadtall", "monadtall",]
+group_layouts = ["monadtall", "monadtall", "monadtall", "monadtall", "monadtall", "monadtall", "monadtall", "monadtall", "monadtall", "monadtall",]
+#group_layouts = ["monadtall", "matrix", "monadtall", "bsp", "monadtall", "matrix", "monadtall", "bsp", "monadtall", "monadtall",]
 
 for i in range(len(group_names)):
     groups.append(
@@ -268,6 +234,22 @@ for i in range(len(group_names)):
             layout=group_layouts[i].lower(),
             label=group_labels[i],
         ))
+
+# for i in groups:
+#     keys.extend([
+#
+# #CHANGE WORKSPACES
+#         Key([mod], i.name, lazy.group[i.name].toscreen()),
+#         Key([mod], "Tab", lazy.screen.next_group()),
+#         Key([mod, "shift" ], "Tab", lazy.screen.prev_group()),
+#         Key(["mod1"], "Tab", lazy.screen.next_group()),
+#         Key(["mod1", "shift"], "Tab", lazy.screen.prev_group()),
+#
+# # MOVE WINDOW TO SELECTED WORKSPACE 1-10 AND STAY ON WORKSPACE
+#         #Key([mod, "shift"], i.name, lazy.window.togroup(i.name)),
+# # MOVE WINDOW TO SELECTED WORKSPACE 1-10 AND FOLLOW MOVED WINDOW TO WORKSPACE
+#         Key([mod, "shift"], i.name, lazy.window.togroup(i.name) , lazy.group[i.name].toscreen()),
+#     ])
 
 for i in groups:
     keys.extend([
@@ -290,26 +272,25 @@ for i in groups:
 
 
 def init_layout_theme():
-    return {"margin": 5,
+    return {"margin":5,
             "border_width": 4,
             "border_focus": "#5A4FCF",
             "border_normal": "#002147"
             }
 
-
 layout_theme = init_layout_theme()
 
 
 layouts = [
-    # layout.MonadTall(margin=8, border_width=2, border_focus="#5e81ac", border_normal="#4c566a"),
+     # layout.MonadTall(margin=8, border_width=2, border_focus="#5e81ac", border_normal="#4c566a"),
     layout.MonadTall(**layout_theme),
     layout.Columns(**layout_theme),
     # layout.MonadWide(margin=8, border_width=2, border_focus="#5e81ac", border_normal="#4c566a"),
-    layout.MonadWide(**layout_theme),
+    # layout.MonadWide(**layout_theme),
     # layout.Matrix(**layout_theme),
     # layout.Bsp(**layout_theme),
     # layout.Floating(**layout_theme),
-    layout.RatioTile(**layout_theme),
+    # layout.RatioTile(**layout_theme),
     layout.Max(**layout_theme),
     layout.TreeTab(
         fontsize=10,
@@ -336,21 +317,6 @@ layouts = [
     layout.Zoomy(**layout_theme),
 ]
 
-# COLORS FOR THE BAR
-# Theme name : ArcoLinux Default
-
-
-# def init_colors():
-#     return [["#24273A", "#24273A"],  # color 0
-#             ["#020403", "#020403"],  # color 1
-#             ["#c0c5ce", "#c0c5ce"],  # color 2
-#             ["#f1fa8c", "#f1fa8c"],  # color 3
-#             ["#8be9fd", "#8be9fd"],  # color 4
-#             ["#f3f4f5", "#f3f4f5"],  # color 5
-#             ["#ff6e67", "#ff6e67"],  # color 6
-#             ["#50fa7b", "#50fa7b"],  # color 7
-#             ["#bd93f9", "#bd93f9"],  # color 8
-#             ["#ff92d0", "#ff92d0"]]  # color 9
 
 def init_colors():
     return [["#24273A", "#24273A"],  # color 0
@@ -372,158 +338,265 @@ colors = init_colors()
 
 def init_widgets_defaults():
     return dict(font="Noto Sans Bold",
-                fontsize=13,
+                fontsize=16,
                 padding=2,
                 background=colors[1])
 
 
 widget_defaults = init_widgets_defaults()
 
-
 def init_widgets_list():
     prompt = "{0}@{1}: ".format(os.environ["USER"], socket.gethostname())
     widgets_list = [
-
-        widget.Spacer(length=8),
-        widget.CurrentLayoutIcon(
-            foreground=colors[1],
-            padding=0,
-            scale=0.7
-        ),
-        widget.Sep(
-            linewidth=2,
-            padding=10,
-            foreground=colors[2],
-            background=colors[1]
-        ),
-        widget.GroupBox(font="FontAwesome Bold",
-                        fontsize=16,
-                        margin_y=3,
-                        margin_x=0,
-                        padding_y=6,
-                        padding_x=4,
-                        borderwidth=0,
-                        disable_drag=True,
-                        active=colors[8],
-                        inactive=colors[5],
-                        rounded=False,
-                        highlight_method="text",
-                        this_current_screen_border="#f1f1f1",
-                        foreground=colors[1],
-                        background=colors[1]
+                widget.Spacer(length=8),
+                widget.CurrentLayoutIcon(
+                    foreground=colors[1],
+                    padding=2,
+                    scale=0.9,
+                ),
+                widget.Sep(
+                    linewidth=2,
+                    padding=10,
+                    foreground=colors[2],
+                    background=colors[1]
+                ),
+               widget.GroupBox(font="Noto Sans Bold",
+                    fontsize = 19,
+                    margin = 2,
+                    padding = 2,
+                    borderwidth = 0,
+                    disable_drag = True,
+                    active = colors[9],
+                    inactive = colors[5],
+                    rounded = False,
+                    highlight_method = "text",
+                    this_current_screen_border = colors[8],
+                    foreground = colors[2],
+                    background = colors[1],
+                    decorations = [
+                        RectDecoration (
+                            line_colour = colors[2],
+                            line_width = 2,
+                            radius = 2,
+                            filled = True,
                         ),
-
-        # widget.CurrentLayout(
-        #          font = "Noto Sans Bold",
-        #          foreground = colors[5],
-        #          background = colors[1]
-        #          ),
-        widget.Sep(
-            linewidth=2,
-            padding=10,
-            foreground=colors[2],
-            background=colors[1]
-        ),
-        widget.WindowName(font="Noto Sans Bold",
-                          fontsize=14,
-                          foreground=colors[5],
-                          # background = colors[1],
-                          background=colors[1],
-                          ),
-        widget.Spacer(length=8),
-        widget.GenPollText(
-            update_interval=300,
-            func=lambda: subprocess.check_output(
-                "printf $(uname -r)", shell=True, text=True),
-            foreground="#6666ff",
-            background=colors[1],
-            fmt='   {}',
-        ),
-        widget.Spacer(length=8),
-        widget.Net(
-            # format = 'Net: {down} ↓↑ {up}',
-            foreground=colors[3],
-            background=colors[1],
-            padding=5,
-            format='Net: {down:.0f}{down_suffix} ↓↑ {up:.0f}{up_suffix}',
-            width=120,
-        ),
-        widget.Spacer(length=8),
-        widget.KeyboardLayout(
-            foreground=colors[4],
-            background=colors[1],
-            fmt='⌨  Kbd: {}',
-        ),
-        widget.Spacer(length=8),
-        widget.DF(
-            update_interval=60,
-            foreground=colors[5],
-            background=colors[1],
-            mouse_callbacks={
-                'Button1': lambda: qtile.cmd_spawn(myTerm + ' -e df')},
-            partition='/',
-            # format = '[{p}] {uf}{m} ({r:.0f}%)',
-            format='{uf}{m} free',
-            fmt='🖴  Disk: {}',
-            visible_on_warn=False,
-        ),
-        widget.Spacer(length=8),
-        widget.Memory(
-            foreground=colors[8],
-            background=colors[1],
-            mouse_callbacks={
-                'Button1': lambda: qtile.cmd_spawn(myTerm + ' -e htop')},
-            format='{MemUsed: .0f}{mm}',
-            fmt='🖥  Mem: {} used',
-        ),
-        widget.Spacer(length=8),
-        widget.Volume(
-            foreground=colors[7],
-            background=colors[1],
-            fmt='🕫  Vol: {}',
-            padding=None,
-        ),
-        widget.Spacer(length=8),
-        widget.CPU(
-            format='▓  Cpu: {load_percent}%',
-            foreground=colors[6],
-            background=colors[1],
-            width=85,
-        ),
-        widget.Spacer(length=8),
-        widget.NvidiaSensors(
-            background=colors[1],
-            # foreground="#F5A97F",
-            foreground="#5c78ff",
-            threshold=70,
-            fmt='🌡 Temp: {}'
-        ),
-        widget.Spacer(length=8),
-        widget.Clock(
-            foreground=colors[9],
-            background=colors[1],
-            format="⏱  %a, %b %d - %I:%M %p",
-            padding=None,
-        ),
-        widget.Spacer(length=8),
-        arcobattery.BatteryIcon(
-            padding=0,
-            scale=0.7,
-            y_poss=2,
-            theme_path=home + "/.config/qtile/icons/battery_icons_horiz",
-            update_interval=5,
-            background=colors[1]
-        ),
-        widget.Battery(
-            format = "{percent:0.1%}",
-            foreground = "#1CFFB7"
-        ),
-        widget.Spacer(length=8),
-        widget.Systray(padding=3),
-        widget.Spacer(length=8),
-    ]
+                    ],
+                ),
+                widget.Sep(
+                    linewidth=2,
+                    padding=10,
+                    foreground=colors[2],
+                    background=colors[1]
+                ),
+                widget.WindowName(font="Noto Sans Bold",
+                                  fontsize=17,
+                                  foreground=colors[5],
+                                  # background = colors[1],
+                                  background=colors[1],
+                                    decorations = [
+                                        RectDecoration (
+                                            line_colour = colors[5],
+                                            line_width = 2,
+                                            radius = 2,
+                                            filled = True,
+                                        ),
+                                    ],
+                                  ),
+                # widget.Spacer(length=8),
+                # widget.GenPollText(
+                #     update_interval=300,
+                #     func=lambda: subprocess.check_output(
+                #         "printf $(uname -r)", shell=True, text=True),
+                #     foreground="#6666ff",
+                #     background=colors[1],
+                #     fmt='   {}',
+                # ),
+                # widget.Spacer(length=8),
+                # widget.TextBox(
+                #     text="󰣇  󰚗  ",
+                #     fontsize=27,
+                #     padding=0,
+                #     foreground="#ff5555"
+                # ),
+                widget.Spacer(length=8),
+                # widget.Net(
+                #     # format = 'Net: {down} ↓↑ {up}',
+                #     foreground=colors[3],
+                #     background=colors[1],
+                #     padding=3,
+                #     format='ᯤ : {down:.0f}{down_suffix} ↓↑ {up:.0f}{up_suffix}',
+                #     width=135,
+                # ),
+                widget.Net(
+                    # format = 'Net: {down} ↓↑ {up}',
+                    foreground=colors[3],
+                    background=colors[1],
+                    padding=4,
+                    format='ᯤ : {down:.0f}{down_suffix} ↓↑ {up:.0f}{up_suffix}',
+                    width=135,
+                    decorations = [
+                        RectDecoration (
+                            line_colour = colors[3],
+                            line_width = 2,
+                            radius = 2,
+                            filled = True,
+                        ),
+                    ],
+                ),
+                # widget.Spacer(length=8),
+                # widget.KeyboardLayout(
+                #     foreground=colors[4],
+                #     background=colors[1],
+                #     fmt='⌨  Kbd: {}',
+                # ),
+                widget.Spacer(length=8),
+                widget.DF(
+                    update_interval=60,
+                    padding=6,
+                    foreground=colors[5],
+                    background=colors[1],
+                    mouse_callbacks={
+                        'Button1': lambda: qtile.cmd_spawn(myTerm + ' -e df')},
+                    partition='/',
+                    # format = '[{p}] {uf}{m} ({r:.0f}%)',
+                    format='{uf}{m} free',
+                    fmt='🖴  : {}',
+                    visible_on_warn=False,
+                    decorations = [
+                        RectDecoration (
+                            line_colour = colors[5],
+                            line_width = 2,
+                            radius = 2,
+                            filled = True,
+                        ),
+                    ],
+                ),
+                widget.Spacer(length=8),
+                widget.Memory(
+                    padding=6,
+                    foreground=colors[8],
+                    background=colors[1],
+                    mouse_callbacks={
+                        'Button1': lambda: qtile.cmd_spawn(myTerm + ' -e htop')},
+                    format='{MemUsed: .0f}{mm}',
+                    fmt='🖥: {} used',
+                    decorations = [
+                        RectDecoration (
+                            line_colour = colors[8],
+                            line_width = 2,
+                            radius = 2,
+                            filled = True,
+                        ),
+                    ],
+                ),
+                widget.Spacer(length=8),
+                widget.Volume(
+                    foreground=colors[7],
+                    background=colors[1],
+                    fmt='🕫 : {}',
+                    padding=None,
+                    decorations = [
+                        RectDecoration (
+                            line_colour = colors[7],
+                            line_width = 2,
+                            radius = 2,
+                            filled = True,
+                        ),
+                    ],
+                ),
+                widget.Spacer(length=8),
+                widget.CPU(
+                    padding=6,
+                    format='回 : {load_percent}%',
+                    foreground=colors[6],
+                    background=colors[1],
+                    width=88,
+                    decorations = [
+                        RectDecoration (
+                            line_colour = colors[6],
+                            line_width = 2,
+                            radius = 2,
+                            filled = True,
+                        ),
+                    ],
+                ),
+                widget.Spacer(length=8),
+                widget.NvidiaSensors(
+                    padding=6,
+                    background=colors[1],
+                    # foreground="#F5A97F",
+                    foreground="#5c78ff",
+                    threshold=70,
+                    fmt='🌡: {}',
+                    decorations = [
+                        RectDecoration (
+                            line_colour = "#5c78ff",
+                            line_width = 2,
+                            radius = 2,
+                            filled = True,
+                        ),
+                    ],
+                ),
+                widget.Spacer(length=8),
+                widget.Clock(
+                    foreground=colors[9],
+                    background=colors[1],
+                    format="⏱  %a, %b %d - %I:%M %p",
+                    padding=None,
+                    decorations = [
+                        RectDecoration (
+                            line_colour = colors[9],
+                            line_width = 2,
+                            radius = 2,
+                            filled = True,
+                        ),
+                    ],
+                ),
+                widget.Spacer(length=8),
+                arcobattery.BatteryIcon(
+                    padding=0,
+                    scale=0.7,
+                    y_poss=2,
+                    theme_path=home + "/.config/qtile/icons/battery_icons_horiz",
+                    update_interval=5,
+                    background=colors[1],
+                    decorations = [
+                        RectDecoration (
+                            line_colour = "#8f00ff",
+                            line_width = 2,
+                            radius = 2,
+                            filled = True,
+                        ),
+                    ],
+                ),
+                widget.Battery(
+                    padding=4,
+                    format = "{percent:0.1%}",
+                    foreground = "#1CFFB7",
+                    decorations = [
+                        RectDecoration (
+                            line_colour = "#1cffb7",
+                            line_width = 2,
+                            radius = 2,
+                            filled = True,
+                        ),
+                    ],
+                ),
+                widget.Spacer(length=8),
+                widget.Systray(
+                    padding=4,
+                    decorations = [
+                        RectDecoration (
+                            line_colour = "#8f00ff",
+                            line_width = 2,
+                            radius = 2,
+                            filled = True,
+                        ),
+                    ],
+               ),
+                widget.Spacer(length=8),
+              ]
     return widgets_list
-
 
 widgets_list = init_widgets_list()
 
@@ -532,35 +605,21 @@ def init_widgets_screen1():
     widgets_screen1 = init_widgets_list()
     return widgets_screen1
 
-
 def init_widgets_screen2():
     widgets_screen2 = init_widgets_list()
-    del widgets_screen2[22:24]
     return widgets_screen2
 
-# widgets_screen1 = init_widgets_screen1()
-# widgets_screen2 = init_widgets_screen2()
-
-
-# def init_screens():
-#     return [Screen(top=bar.Bar(widgets=init_widgets_screen1(), size=26, opacity=0.9)),
-#             Screen(top=bar.Bar(widgets=init_widgets_screen2(), size=26, opacity=0.8))]
-# screens = init_screens()
+widgets_screen1 = init_widgets_screen1()
+widgets_screen2 = init_widgets_screen2()
 
 def init_screens():
-    return [Screen(top=bar.Bar(widgets=init_widgets_screen1(), size=22)),
-            Screen(top=bar.Bar(widgets=init_widgets_screen2(), size=19)),
-            Screen(top=bar.Bar(widgets=init_widgets_screen2(), size=20))]
+    return [Screen(
+            top=bar.Bar(widgets=init_widgets_screen1(), size=26, opacity=0.7,)),
+            Screen(top=bar.Bar(widgets=init_widgets_screen2(), size=22, opacity=0.7 )),
+            Screen(top=bar.Bar(widgets=init_widgets_screen2(), size=20, opacity=0.7 ))]
 
+screens = init_screens()
 
-if __name__ in ["config", "__main__"]:
-    screens = init_screens()
-    widgets_list = init_widgets_list()
-    widgets_screen1 = init_widgets_screen1()
-    widgets_screen2 = init_widgets_screen2()
-
-
-# MOUSE CONFIGURATION
 mouse = [
     Drag([mod], "Button1", lazy.window.set_position_floating(),
          start=lazy.window.get_position()),
@@ -614,28 +673,35 @@ dgroups_app_rules = []
 # END
 # ASSIGN APPLICATIONS TO A SPECIFIC GROUPNAME
 
-
 main = None
 
+# hides the top bar when the archlinux-logout widget is opened
+@hook.subscribe.client_new
+def new_client(window):
+    if window.name == "ArchLinux Logout":
+        qtile.hide_show_bar()
+
+# shows the top bar when the archlinux-logout widget is closed
+@hook.subscribe.client_killed
+def logout_killed(window):
+    if window.name == "ArchLinux Logout":
+        qtile.hide_show_bar()
 
 @hook.subscribe.startup_once
 def start_once():
     home = os.path.expanduser('~')
     subprocess.call([home + '/.config/qtile/scripts/autostart.sh'])
 
-
 @hook.subscribe.startup
 def start_always():
     # Set the cursor to something sane in X
     subprocess.Popen(['xsetroot', '-cursor_name', 'left_ptr'])
-
 
 @hook.subscribe.client_new
 def set_floating(window):
     if (window.window.get_wm_transient_for()
             or window.window.get_wm_type() in floating_types):
         window.floating = True
-
 
 floating_types = ["notification", "toolbar", "splash", "dialog"]
 
@@ -668,8 +734,9 @@ floating_layout = layout.Floating(float_rules=[
     Match(wm_class='archlinux-logout'),
     Match(wm_class='xfce4-terminal'),
 
-],  fullscreen_border_width=0, border_width=0)
+],  fullscreen_border_width = 0, border_width = 0)
 auto_fullscreen = True
-focus_on_window_activation = "smart"  # or focus
+
+focus_on_window_activation = "focus" # or smart
 
 wmname = "LG3D"

@@ -59,9 +59,13 @@ super + F12
 # SUPER + ... KEYS
 #################################################################
 
-#Dolphin
+# #Dolphin
+# super + e
+#     dolphin
+
+#Thunar
 super + e
-    dolphin
+    Thunar
 
 #Browser
 super + w
@@ -222,9 +226,9 @@ ctrl + alt + r
 #ctrl + alt + Return
 #    alacritty
 
-#alacritty
+#wezterm
 ctrl + alt + t
-    konsole
+    wezterm
 
 #Vivaldi
 ctrl + alt + v
@@ -462,6 +466,3 @@ ctrl + alt + o
 #super + control + j
 #super + control + Down
 ##################################
-
-
-
