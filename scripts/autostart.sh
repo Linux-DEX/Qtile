@@ -27,7 +27,7 @@ run dex $HOME/.config/autostart/arcolinux-welcome-app.desktop &
 #Some ways to set your wallpaper besides variety or nitrogen
 feh --bg-fill /usr/share/backgrounds/archlinux/arch-wallpaper.jpg &
 # feh --bg-fill $HOME/.config/qtile/wallpaper/blackarch2.png &
-feh --bg-fill $HOME/.config/qtile/wallpaper/building.jpg &
+feh --bg-fill $HOME/.config/qtile/wallpaper/satoru.png &
 #wallpaper for other Arch based systems
 #feh --bg-fill /usr/share/archlinux-tweak-tool/data/wallpaper/wallpaper.png &
 #start the conky to learn the shortcuts
