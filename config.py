@@ -355,8 +355,6 @@ def init_widgets():
         _pipe(),
         _battery(),
         _pipe(),
-        _tray(),
-        _pipe(),
         widget.TextBox(text="󰃭", foreground=colors["blue"], background=colors["bg"], padding=2),
         widget.Clock(
             format="%d-%m-%Y",
@@ -372,6 +370,9 @@ def init_widgets():
             background=colors["bg"],
             padding=4,
         ),
+        # tray last — avoids empty gap between battery and clock when no icons
+        _pipe(),
+        _tray(),
         widget.TextBox(text=" ", background=colors["bg"], padding=2),
     ]
 
