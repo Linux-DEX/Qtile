@@ -401,6 +401,15 @@ def init_widgets():
         # tray last — avoids empty gap between battery and clock when no icons
         _pipe(),
         _tray(),
+        _pipe(),
+        widget.QuickExit(
+            default_text="󰐥",
+            countdown_format="{}",
+            foreground=colors["red"],
+            background=colors["bg"],
+            padding=8,
+            fontsize=FONT_SIZE + 2,
+        ),
         widget.TextBox(text=" ", background=colors["bg"], padding=2),
     ]
 
