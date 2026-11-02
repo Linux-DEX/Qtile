@@ -16,7 +16,8 @@ from libqtile.lazy import lazy
 from libqtile.utils import guess_terminal
 
 mod = "mod4"
-terminal = guess_terminal()
+# Prefer Ghostty (same as personal config); fall back if missing
+terminal = "ghostty" if shutil.which("ghostty") else guess_terminal()
 cfg_dir = os.path.dirname(os.path.abspath(__file__))
 wallpaper = os.path.join(cfg_dir, "wallpaper", "jujutsu.jpg")
 rofi_config = os.path.join(cfg_dir, "rofi", "config.rasi")

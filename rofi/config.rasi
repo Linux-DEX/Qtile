@@ -3,7 +3,7 @@ configuration {
     combi-modi:             "drun,run,window,filebrowser";
     show-icons:             true;
     icon-theme:             "Papirus-Dark";
-    terminal:               "alacritty";
+    terminal:               "ghostty";
     font:                   "JetBrainsMono Nerd Font 12";
     drun-display-format:    "{icon} {name}";
     disable-history:        false;
