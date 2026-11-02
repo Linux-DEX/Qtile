@@ -234,7 +234,6 @@ def _tray():
     return widget.StatusNotifier(
         background=colors["surface"],
         padding=4,
-        icon_size=16,
     )
 
 
@@ -313,12 +312,7 @@ def init_widgets():
     widgets = [
         # layout + workspaces
         _pill_start(left),
-        widget.CurrentLayoutIcon(
-            scale=0.55,
-            background=left,
-            foreground=colors["blue"],
-            padding=4,
-        ),
+        _icon("󰙀", colors["blue"], left),
         widget.CurrentLayout(
             fmt="{}",
             background=left,
