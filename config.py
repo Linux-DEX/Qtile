@@ -35,14 +35,25 @@ def is_wayland() -> bool:
         return bool(os.environ.get("WAYLAND_DISPLAY"))
 
 
-def rofi_cmd(mode: str = "drun") -> str:
-    """App launcher: rofi-wayland on Wayland, rofi on X11."""
-    bin_name = "rofi-wayland" if is_wayland() and shutil.which("rofi-wayland") else "rofi"
-    if not shutil.which(bin_name):
-        bin_name = "rofi" if shutil.which("rofi") else "rofi-wayland"
-    parts = [bin_name, "-show", mode]
+def rofi_bin() -> str:
+    if is_wayland() and shutil.which("rofi-wayland"):
+        return "rofi-wayland"
+    if shutil.which("rofi"):
+        return "rofi"
+    return "rofi-wayland"
+
+
+def rofi_cmd(mode: str = "combi") -> str:
+    """Launcher matching bar/tmux Catppuccin Mocha theme."""
+    parts = [rofi_bin(), "-show", mode]
+    if mode == "combi":
+        parts.extend(["-modes", "combi", "-combi-modes", "drun,run,window,filebrowser"])
     if os.path.isfile(rofi_config):
+        # theme lives next to config.rasi
         parts.extend(["-config", rofi_config])
+        theme = os.path.join(cfg_dir, "rofi", "catppuccin-mocha.rasi")
+        if os.path.isfile(theme):
+            parts.extend(["-theme", theme])
     return " ".join(parts)
 
 
@@ -98,7 +109,7 @@ keys = [
     Key([mod], "l", lazy.layout.right(), desc="Focus right"),
     Key([mod], "j", lazy.layout.down(), desc="Focus down"),
     Key([mod], "k", lazy.layout.up(), desc="Focus up"),
-    Key([mod], "space", lazy.layout.next(), desc="Focus next window"),
+    Key([mod, "shift"], "space", lazy.layout.next(), desc="Focus next window"),
     Key([mod, "shift"], "h", lazy.layout.shuffle_left(), desc="Move window left"),
     Key([mod, "shift"], "l", lazy.layout.shuffle_right(), desc="Move window right"),
     Key([mod, "shift"], "j", lazy.layout.shuffle_down(), desc="Move window down"),
@@ -122,9 +133,10 @@ keys = [
     Key([mod, "control"], "r", lazy.reload_config(), desc="Reload config"),
     Key([mod, "control"], "q", lazy.shutdown(), desc="Shutdown Qtile"),
     Key([mod], "r", lazy.spawncmd(), desc="Spawn command prompt"),
-    Key([mod], "d", lazy.spawn(rofi_cmd("drun")), desc="Rofi app launcher"),
+    Key([mod], "space", lazy.spawn(rofi_cmd("combi")), desc="Rofi search everything"),
+    Key([mod], "d", lazy.spawn(rofi_cmd("drun")), desc="Rofi apps"),
     Key([mod, "shift"], "d", lazy.spawn(rofi_cmd("run")), desc="Rofi run command"),
-    Key([mod], "slash", lazy.spawn(rofi_cmd("window")), desc="Rofi window switcher"),
+    Key([mod], "slash", lazy.spawn(rofi_cmd("window")), desc="Rofi windows"),
     Key([], "Print", take_screenshot(), desc="Screenshot"),
     Key([], "XF86AudioRaiseVolume", volume_adjust("5%+")),
     Key([], "XF86AudioLowerVolume", volume_adjust("5%-")),

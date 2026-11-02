@@ -1,0 +1,21 @@
+/* Catppuccin Mocha — matches Qtile bar / tmux status */
+* {
+    bg:           #1e1e2e;
+    bg-alt:       #313244;
+    fg:           #cdd6f4;
+    fg-dim:       #a6adc8;
+    blue:         #89b4fa;
+    teal:         #94e2d5;
+    lavender:     #b4befe;
+    peach:        #fab387;
+    red:          #f38ba8;
+    green:        #a6e3a1;
+    yellow:       #f9e2af;
+    mauve:        #cba6f7;
+    overlay:      #6c7086;
+    surface:      #313244;
+    transparent:  #00000000;
+
+    background-color: @transparent;
+    text-color:       @fg;
+}
