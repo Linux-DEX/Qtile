@@ -398,10 +398,9 @@ def init_widgets():
             background=colors["bg"],
             padding=4,
         ),
-        # tray last — avoids empty gap between battery and clock when no icons
+        # one divider before tray/power; no second pipe (looks like │ │ when tray empty)
         _pipe(),
         _tray(),
-        _pipe(),
         widget.QuickExit(
             default_text="󰐥",
             countdown_format="{}",
