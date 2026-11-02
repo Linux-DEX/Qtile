@@ -1,15 +1,17 @@
 configuration{
     modi: "run,drun,window";
-    lines: 5;
-    font: "Iosevka 12";
+    lines: 8;
+    font: "JetBrainsMono Nerd Font 12";
     show-icons: true;
-    icon-theme: "Paper Mono";
-    terminal: "st";
+    icon-theme: "Papirus";
+    terminal: "alacritty";
     drun-display-format: "{icon} {name}";
     location: 0;
     disable-history: false;
     hide-scrollbar: true;
-    display-drun: "   Apps ";
+    display-drun: " Apps ";
+    display-run: " Run ";
+    display-window: " Windows ";
 }
 
 @theme "everblush"

@@ -30,6 +30,7 @@ pacman -S --needed --noconfirm \
   brightnessctl \
   picom \
   wl-clipboard \
+  rofi \
   noto-fonts \
   ttf-jetbrains-mono-nerd
 

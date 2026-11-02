@@ -19,6 +19,7 @@ mod = "mod4"
 terminal = guess_terminal()
 cfg_dir = os.path.dirname(os.path.abspath(__file__))
 wallpaper = os.path.join(cfg_dir, "wallpaper", "jujutsu.jpg")
+rofi_config = os.path.join(cfg_dir, "rofi", "config.rasi")
 
 # ---------------------------------------------------------------------------
 # backend helpers
@@ -32,6 +33,17 @@ def is_wayland() -> bool:
         if os.environ.get("XDG_SESSION_TYPE") == "wayland":
             return True
         return bool(os.environ.get("WAYLAND_DISPLAY"))
+
+
+def rofi_cmd(mode: str = "drun") -> str:
+    """App launcher: rofi-wayland on Wayland, rofi on X11."""
+    bin_name = "rofi-wayland" if is_wayland() and shutil.which("rofi-wayland") else "rofi"
+    if not shutil.which(bin_name):
+        bin_name = "rofi" if shutil.which("rofi") else "rofi-wayland"
+    parts = [bin_name, "-show", mode]
+    if os.path.isfile(rofi_config):
+        parts.extend(["-config", rofi_config])
+    return " ".join(parts)
 
 
 @lazy.function
@@ -110,6 +122,9 @@ keys = [
     Key([mod, "control"], "r", lazy.reload_config(), desc="Reload config"),
     Key([mod, "control"], "q", lazy.shutdown(), desc="Shutdown Qtile"),
     Key([mod], "r", lazy.spawncmd(), desc="Spawn command prompt"),
+    Key([mod], "d", lazy.spawn(rofi_cmd("drun")), desc="Rofi app launcher"),
+    Key([mod, "shift"], "d", lazy.spawn(rofi_cmd("run")), desc="Rofi run command"),
+    Key([mod], "slash", lazy.spawn(rofi_cmd("window")), desc="Rofi window switcher"),
     Key([], "Print", take_screenshot(), desc="Screenshot"),
     Key([], "XF86AudioRaiseVolume", volume_adjust("5%+")),
     Key([], "XF86AudioLowerVolume", volume_adjust("5%-")),
