@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Run on the Arch laptop as your user (linuxdex).
 # Adds Qtile sessions next to Plasma. Does not remove or disable Plasma.
+# No picom.
 set -euo pipefail
 
 if [[ "$(id -u)" -eq 0 ]]; then
@@ -28,16 +29,24 @@ pacman -S --needed --noconfirm \
   grim \
   slurp \
   brightnessctl \
-  picom \
   wl-clipboard \
+  cliphist \
   rofi \
+  ghostty \
+  mako \
+  dunst \
+  network-manager-applet \
+  blueman \
+  swaylock \
+  swayidle \
+  playerctl \
+  pavucontrol \
+  libnotify \
   noto-fonts \
   ttf-jetbrains-mono-nerd
 
 mkdir -p /usr/share/wayland-sessions /usr/share/xsessions
 
-# Package ships qtile-generic.desktop in BOTH session dirs → duplicate menu entries.
-# Drop those; keep one clearly named Wayland + one X11 entry only.
 rm -f /usr/share/wayland-sessions/qtile-generic.desktop
 rm -f /usr/share/xsessions/qtile-generic.desktop
 
@@ -63,7 +72,6 @@ DesktopNames=qtile
 Keywords=tiling;wm;x11;
 EOF
 
-# Keep greeter default on Plasma; never delete plasma.desktop
 if [[ -f /etc/plasmalogin.conf ]] && grep -qE '^Session=' /etc/plasmalogin.conf; then
   sed -i 's/^Session=.*/Session=plasma/' /etc/plasmalogin.conf
 fi
@@ -81,6 +89,10 @@ if [[ ! -f "$HOME/.config/qtile/config.py" ]]; then
   git clone https://github.com/Linux-DEX/Qtile.git "$HOME/.config/qtile"
 fi
 chmod +x "$HOME/.config/qtile/scripts/"*.sh 2>/dev/null || true
+
+# mako theme
+mkdir -p "$HOME/.config/mako"
+cp -f "$HOME/.config/qtile/scripts/mako/config" "$HOME/.config/mako/config" 2>/dev/null || true
 
 python -c "import libqtile; print('libqtile OK')"
 test -f /usr/share/wayland-sessions/plasma.desktop

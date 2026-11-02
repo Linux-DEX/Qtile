@@ -1,0 +1,13 @@
+# Catppuccin Mocha — match Qtile bar
+font=JetBrainsMono Nerd Font 11
+background-color=#1e1e2e
+text-color=#cdd6f4
+border-color=#313244
+progress-color=#89b4fa
+border-size=1
+border-radius=6
+padding=10
+margin=8
+width=360
+default-timeout=5000
+anchor=top-right

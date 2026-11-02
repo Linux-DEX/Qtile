@@ -1,5 +1,5 @@
 #!/bin/bash
-# Soft-fail autostart for X11 and Wayland. Missing tools must not break the session.
+# Soft-fail autostart for X11 and Wayland. No picom.
 # Wallpaper comes from config.py (Screen.wallpaper).
 
 run() {
@@ -21,7 +21,6 @@ else
   export XDG_SESSION_TYPE=x11
 fi
 
-# Expose vars to systemd user services (portals, tray, pipewire)
 if command -v dbus-update-activation-environment >/dev/null 2>&1; then
   dbus-update-activation-environment --systemd \
     DISPLAY WAYLAND_DISPLAY XDG_CURRENT_DESKTOP XDG_SESSION_TYPE 2>/dev/null || true
@@ -31,25 +30,31 @@ if command -v systemctl >/dev/null 2>&1; then
 fi
 
 if ((is_wayland)); then
-  # wlroots portal for screenshots/screencast (grim/slurp still used by keybind)
   run /usr/lib/xdg-desktop-portal-wlr
   run /usr/lib/xdg-desktop-portal
-  # X11 apps under Wayland
-  # (xorg-xwayland is pulled in by the compositor/session as needed)
-else
-  # X11 compositor + cursor
-  if command -v picom >/dev/null 2>&1; then
-    if [[ -f "$HOME/.config/qtile/scripts/picom.conf" ]]; then
-      run picom --config "$HOME/.config/qtile/scripts/picom.conf"
-    else
-      run picom
-    fi
+  # notifications
+  run mako
+  # clipboard history daemon
+  if command -v wl-paste >/dev/null && command -v cliphist >/dev/null; then
+    pgrep -f "wl-paste --watch cliphist" >/dev/null 2>&1 \
+      || wl-paste --type text --watch cliphist store &
+    pgrep -f "wl-paste --type image" >/dev/null 2>&1 \
+      || wl-paste --type image --watch cliphist store &
   fi
+  # idle lock (5 min)
+  if command -v swayidle >/dev/null && command -v swaylock >/dev/null; then
+    pgrep -x swayidle >/dev/null 2>&1 || swayidle -w \
+      timeout 300 'swaylock -f -c 1e1e2e' \
+      before-sleep 'swaylock -f -c 1e1e2e' &
+  fi
+else
   command -v xsetroot >/dev/null 2>&1 && xsetroot -cursor_name left_ptr &
+  run dunst
 fi
 
-# Shared applets (StatusNotifier / AppIndicator)
+# tray applets
 run nm-applet --indicator
+run blueman-applet
 run xfce4-power-manager
 
 if [[ -x /usr/lib/polkit-gnome/polkit-gnome-authentication-agent-1 ]]; then
