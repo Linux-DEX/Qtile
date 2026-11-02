@@ -148,104 +148,78 @@ for i in groups:
         ]
     )
 
-# Palette — Tokyo Night Storm (matches jujutsu wallpaper)
+# Palette — Catppuccin Mocha (same as tmux status)
 colors = {
-    "bg": "#16161e",
-    "bg_alt": "#1a1b26",
-    "surface": "#24283b",
-    "surface2": "#292e42",
-    "fg": "#c0caf5",
-    "fg_dim": "#a9b1d6",
-    "muted": "#565f89",
-    "blue": "#7aa2f7",
-    "cyan": "#7dcfff",
-    "green": "#9ece6a",
-    "magenta": "#bb9af7",
-    "orange": "#ff9e64",
-    "red": "#f7768e",
-    "yellow": "#e0af68",
+    "bg": "#1e1e2e",
+    "fg": "#cdd6f4",
+    "blue": "#89b4fa",
+    "teal": "#94e2d5",
+    "lavender": "#b4befe",
+    "peach": "#fab387",
+    "red": "#f38ba8",
+    "green": "#a6e3a1",
+    "yellow": "#f9e2af",
+    "mauve": "#cba6f7",
+    "overlay": "#6c7086",
+    "surface": "#313244",
 }
 
 layouts = [
     layout.Columns(
-        border_focus=colors["blue"],
-        border_normal=colors["surface"],
+        border_focus=colors["peach"],
+        border_normal=colors["overlay"],
         border_width=2,
         margin=6,
         border_on_single=False,
     ),
     layout.Max(margin=6),
     layout.MonadTall(
-        border_focus=colors["blue"],
-        border_normal=colors["surface"],
+        border_focus=colors["peach"],
+        border_normal=colors["overlay"],
         border_width=2,
         margin=6,
     ),
 ]
 
-# Prefer Nerd Font for icons; fall back cleanly
 FONT = "JetBrainsMono Nerd Font"
 FONT_SIZE = 13
 
 widget_defaults = dict(
     font=FONT,
     fontsize=FONT_SIZE,
-    padding=6,
+    padding=4,
     foreground=colors["fg"],
+    background=colors["bg"],
 )
 extension_defaults = widget_defaults.copy()
 
 # ---------------------------------------------------------------------------
-# widgets — prettier bar, X11 + Wayland safe
+# bar — tmux Catppuccin Mocha statusline language
+# flat bg, │ separators, peach current / blue idle, icon + text clusters
 # ---------------------------------------------------------------------------
 
-def _pill_start(bg: str):
+def _pipe():
     return widget.TextBox(
-        text=" ",
-        padding=4,
+        text="│",
+        foreground=colors["overlay"],
+        background=colors["bg"],
+        padding=6,
         fontsize=FONT_SIZE,
-        background=bg,
-        foreground=bg,
-    )
-
-
-def _pill_end(bg: str):
-    return widget.TextBox(
-        text=" ",
-        padding=4,
-        fontsize=FONT_SIZE,
-        background=bg,
-        foreground=bg,
-    )
-
-
-def _icon(text: str, fg: str, bg: str):
-    return widget.TextBox(
-        text=f" {text}",
-        fontsize=FONT_SIZE + 1,
-        padding=2,
-        foreground=fg,
-        background=bg,
     )
 
 
 def _tray():
-    # StatusNotifier: Wayland + X11. Never use Systray on Wayland.
-    return widget.StatusNotifier(
-        background=colors["surface"],
-        padding=4,
-    )
+    return widget.StatusNotifier(background=colors["bg"], padding=4)
 
 
-def _volume(bg: str):
-    # Use ALSA Volume (works with pipewire-alsa). PulseVolume needs extra pkgs.
+def _volume():
     return widget.Volume(
         fmt="{}",
         update_interval=0.2,
         step=5,
-        background=bg,
-        foreground=colors["fg"],
-        padding=4,
+        foreground=colors["green"],
+        background=colors["bg"],
+        padding=2,
         mouse_callbacks={
             "Button1": lazy.spawn("pavucontrol"),
             "Button3": volume_adjust("mute"),
@@ -255,7 +229,7 @@ def _volume(bg: str):
     )
 
 
-def _battery(bg: str):
+def _battery():
     return widget.Battery(
         format="{char} {percent:2.0%}",
         charge_char="󰂄",
@@ -268,96 +242,101 @@ def _battery(bg: str):
         show_short_text=False,
         low_percentage=0.2,
         low_foreground=colors["red"],
-        background=bg,
-        foreground=colors["fg"],
-        padding=4,
+        foreground=colors["peach"],
+        background=colors["bg"],
+        padding=2,
     )
 
 
-def _cpu(bg: str):
+def _cpu():
     try:
         import psutil  # noqa: F401
     except ImportError:
-        return widget.TextBox("", background=bg)
+        return widget.TextBox("")
     return widget.CPU(
         format="{load_percent:2.0f}%",
         update_interval=2,
-        background=bg,
-        foreground=colors["fg"],
-        padding=4,
+        foreground=colors["mauve"],
+        background=colors["bg"],
+        padding=2,
     )
 
 
-def _mem(bg: str):
+def _mem():
     try:
         import psutil  # noqa: F401
     except ImportError:
-        return widget.TextBox("", background=bg)
+        return widget.TextBox("")
     return widget.Memory(
         format="{MemUsed:.1f}{mm}",
         measure_mem="G",
         update_interval=2,
-        background=bg,
-        foreground=colors["fg"],
-        padding=4,
+        foreground=colors["teal"],
+        background=colors["bg"],
+        padding=2,
     )
 
 
 def init_widgets():
-    left = colors["surface"]
-    right = colors["surface2"]
-
-    widgets = [
-        # layout + workspaces
-        _pill_start(left),
-        _icon("󰙀", colors["blue"], left),
+    # Mirrors tmux:   session │ windows…   …  title │ 󰃭 date │  time
+    return [
+        widget.TextBox(
+            text=" ",
+            foreground=colors["blue"],
+            background=colors["bg"],
+            padding=4,
+            fontsize=FONT_SIZE + 1,
+        ),
         widget.CurrentLayout(
             fmt="{}",
-            background=left,
-            foreground=colors["fg_dim"],
-            padding=4,
+            foreground=colors["blue"],
+            background=colors["bg"],
+            padding=2,
         ),
-        _pill_end(left),
-        widget.Spacer(length=6),
-        _pill_start(left),
+        _pipe(),
         widget.GroupBox(
             font=FONT,
             fontsize=FONT_SIZE,
-            margin_y=3,
-            margin_x=4,
-            padding_y=4,
+            margin_y=2,
+            margin_x=0,
+            padding_y=2,
             padding_x=6,
-            borderwidth=2,
+            borderwidth=1,
             disable_drag=True,
-            rounded=True,
-            highlight_method="block",
-            this_current_screen_border=colors["blue"],
-            this_screen_border=colors["blue"],
-            other_current_screen_border=colors["magenta"],
-            other_screen_border=colors["muted"],
+            rounded=False,
+            # underline current like tmux #[underscore]
+            highlight_method="line",
+            highlight_color=[colors["bg"], colors["bg"]],
+            this_current_screen_border=colors["peach"],
+            this_screen_border=colors["peach"],
+            other_current_screen_border=colors["lavender"],
+            other_screen_border=colors["overlay"],
             urgent_border=colors["red"],
-            active=colors["fg"],
-            inactive=colors["muted"],
-            background=left,
+            urgent_text=colors["red"],
+            active=colors["peach"],
+            inactive=colors["blue"],
+            background=colors["bg"],
             foreground=colors["fg"],
             hide_unused=False,
+            spacing=2,
         ),
-        _pill_end(left),
-        widget.Spacer(length=8),
         widget.Prompt(
-            font=FONT,
-            fontsize=FONT_SIZE,
             foreground=colors["green"],
             background=colors["bg"],
-            padding=8,
+            padding=6,
+        ),
+        _pipe(),
+        widget.TextBox(
+            text="",
+            foreground=colors["teal"],
+            background=colors["bg"],
+            padding=4,
         ),
         widget.WindowName(
-            font=FONT,
-            fontsize=FONT_SIZE,
-            foreground=colors["fg_dim"],
+            foreground=colors["teal"],
             background=colors["bg"],
-            max_chars=48,
-            padding=8,
+            max_chars=40,
+            padding=2,
         ),
         widget.Chord(
             chords_colors={"launch": (colors["red"], colors["bg"])},
@@ -365,56 +344,48 @@ def init_widgets():
             background=colors["bg"],
         ),
         widget.Spacer(),
-        # system pills
-        _pill_start(right),
-        _icon("󰍛", colors["cyan"], right),
-        _cpu(right),
-        _icon("󰘚", colors["magenta"], right),
-        _mem(right),
-        _pill_end(right),
-        widget.Spacer(length=6),
-        _pill_start(right),
-        _icon("󰕾", colors["green"], right),
-        _volume(right),
-        widget.Spacer(length=6, background=right),
-        _battery(right),
-        _pill_end(right),
-        widget.Spacer(length=6),
-        _pill_start(right),
+        widget.TextBox(text="󰍛", foreground=colors["mauve"], background=colors["bg"], padding=2),
+        _cpu(),
+        _pipe(),
+        widget.TextBox(text="󰘚", foreground=colors["teal"], background=colors["bg"], padding=2),
+        _mem(),
+        _pipe(),
+        widget.TextBox(text="󰕾", foreground=colors["green"], background=colors["bg"], padding=2),
+        _volume(),
+        _pipe(),
+        _battery(),
+        _pipe(),
         _tray(),
-        _pill_end(right),
-        widget.Spacer(length=6),
-        _pill_start(left),
-        _icon("󰥔", colors["blue"], left),
+        _pipe(),
+        widget.TextBox(text="󰃭", foreground=colors["blue"], background=colors["bg"], padding=2),
         widget.Clock(
-            format="%a %d %b  %H:%M",
-            background=left,
-            foreground=colors["fg"],
-            padding=6,
-        ),
-        _pill_end(left),
-        widget.Spacer(length=4),
-        widget.QuickExit(
-            default_text="󰐥 ",
-            countdown_format="{} ",
-            foreground=colors["red"],
+            format="%d-%m-%Y",
+            foreground=colors["blue"],
             background=colors["bg"],
-            padding=8,
-            fontsize=FONT_SIZE + 2,
+            padding=2,
         ),
+        _pipe(),
+        widget.TextBox(text="", foreground=colors["lavender"], background=colors["bg"], padding=2),
+        widget.Clock(
+            format="%I:%M %p",
+            foreground=colors["lavender"],
+            background=colors["bg"],
+            padding=4,
+        ),
+        widget.TextBox(text=" ", background=colors["bg"], padding=2),
     ]
-    return widgets
 
 
 screens = [
     Screen(
-        top=bar.Bar(
+        # tmux status-position bottom
+        bottom=bar.Bar(
             init_widgets(),
-            34,
+            26,
             background=colors["bg"],
-            margin=[6, 10, 0, 10],
-            border_width=[0, 0, 0, 0],
-            opacity=0.95,
+            margin=0,
+            border_width=[1, 0, 0, 0],
+            border_color=[colors["surface"], colors["bg"], colors["bg"], colors["bg"]],
         ),
         wallpaper=wallpaper if os.path.isfile(wallpaper) else None,
         wallpaper_mode="fill",
@@ -446,8 +417,8 @@ floating_layout = layout.Floating(
         Match(title="branchdialog"),
         Match(title="pinentry"),
     ],
-    border_focus="#7aa2f7",
-    border_normal="#1a1b26",
+    border_focus=colors["peach"],
+    border_normal=colors["overlay"],
     border_width=2,
 )
 auto_fullscreen = True
