@@ -148,131 +148,281 @@ for i in groups:
         ]
     )
 
+# Palette — Tokyo Night Storm (matches jujutsu wallpaper)
+colors = {
+    "bg": "#16161e",
+    "bg_alt": "#1a1b26",
+    "surface": "#24283b",
+    "surface2": "#292e42",
+    "fg": "#c0caf5",
+    "fg_dim": "#a9b1d6",
+    "muted": "#565f89",
+    "blue": "#7aa2f7",
+    "cyan": "#7dcfff",
+    "green": "#9ece6a",
+    "magenta": "#bb9af7",
+    "orange": "#ff9e64",
+    "red": "#f7768e",
+    "yellow": "#e0af68",
+}
+
 layouts = [
     layout.Columns(
-        border_focus="#7aa2f7",
-        border_normal="#1a1b26",
+        border_focus=colors["blue"],
+        border_normal=colors["surface"],
         border_width=2,
-        margin=4,
+        margin=6,
         border_on_single=False,
     ),
-    layout.Max(),
+    layout.Max(margin=6),
     layout.MonadTall(
-        border_focus="#7aa2f7",
-        border_normal="#1a1b26",
+        border_focus=colors["blue"],
+        border_normal=colors["surface"],
         border_width=2,
-        margin=4,
+        margin=6,
     ),
 ]
 
+# Prefer Nerd Font for icons; fall back cleanly
+FONT = "JetBrainsMono Nerd Font"
+FONT_SIZE = 13
+
 widget_defaults = dict(
-    font="sans",
-    fontsize=13,
-    padding=4,
-    foreground="#c0caf5",
+    font=FONT,
+    fontsize=FONT_SIZE,
+    padding=6,
+    foreground=colors["fg"],
 )
 extension_defaults = widget_defaults.copy()
 
 # ---------------------------------------------------------------------------
-# widgets — prefer backends that work on both X11 and Wayland
+# widgets — prettier bar, X11 + Wayland safe
 # ---------------------------------------------------------------------------
 
-def _sep():
-    return widget.Sep(linewidth=1, padding=8, foreground="#565f89")
-
-
-def _tray():
-    # StatusNotifier works on Wayland and X11 (needs python-dbus-fast).
-    # Systray is X11-only and crashes under Wayland — never use it here.
-    return widget.StatusNotifier()
-
-
-def _volume():
-    # PulseVolume talks to PipeWire/Pulse via libpulse; Volume falls back to ALSA.
-    if hasattr(widget, "PulseVolume"):
-        return widget.PulseVolume(
-            fmt="vol {}",
-            update_interval=0.2,
-            step=5,
-            limit_max_volume=True,
-        )
-    return widget.Volume(fmt="vol {}", step=5)
-
-
-def _battery():
-    # No crash on desktops without a battery — widget shows empty/hidden.
-    return widget.Battery(
-        format="{char}{percent:2.0%}",
-        charge_char="↑",
-        discharge_char="↓",
-        full_char="",
-        empty_char="!",
-        unknown_char="?",
-        update_interval=30,
-        show_short_text=False,
-        not_charging_char="",
+def _pill_start(bg: str):
+    return widget.TextBox(
+        text=" ",
+        padding=4,
+        fontsize=FONT_SIZE,
+        background=bg,
+        foreground=bg,
     )
 
 
-def _cpu():
+def _pill_end(bg: str):
+    return widget.TextBox(
+        text=" ",
+        padding=4,
+        fontsize=FONT_SIZE,
+        background=bg,
+        foreground=bg,
+    )
+
+
+def _icon(text: str, fg: str, bg: str):
+    return widget.TextBox(
+        text=f" {text}",
+        fontsize=FONT_SIZE + 1,
+        padding=2,
+        foreground=fg,
+        background=bg,
+    )
+
+
+def _tray():
+    # StatusNotifier: Wayland + X11. Never use Systray on Wayland.
+    return widget.StatusNotifier(
+        background=colors["surface"],
+        padding=4,
+        icon_size=16,
+    )
+
+
+def _volume(bg: str):
+    kwargs = dict(
+        fmt="{}",
+        update_interval=0.2,
+        step=5,
+        background=bg,
+        foreground=colors["fg"],
+        padding=4,
+        mouse_callbacks={
+            "Button1": lazy.spawn("pavucontrol"),
+            "Button3": volume_adjust("mute"),
+            "Button4": volume_adjust("5%+"),
+            "Button5": volume_adjust("5%-"),
+        },
+    )
+    if hasattr(widget, "PulseVolume"):
+        return widget.PulseVolume(limit_max_volume=True, **kwargs)
+    return widget.Volume(**kwargs)
+
+
+def _battery(bg: str):
+    return widget.Battery(
+        format="{char} {percent:2.0%}",
+        charge_char="󰂄",
+        discharge_char="󰁹",
+        full_char="󰁹",
+        empty_char="󰂎",
+        unknown_char="󰂑",
+        not_charging_char="󰁹",
+        update_interval=30,
+        show_short_text=False,
+        low_percentage=0.2,
+        low_foreground=colors["red"],
+        background=bg,
+        foreground=colors["fg"],
+        padding=4,
+    )
+
+
+def _cpu(bg: str):
     try:
         import psutil  # noqa: F401
     except ImportError:
-        return widget.TextBox("")
-    return widget.CPU(format="cpu {load_percent}%", update_interval=2)
+        return widget.TextBox("", background=bg)
+    return widget.CPU(
+        format="{load_percent:2.0f}%",
+        update_interval=2,
+        background=bg,
+        foreground=colors["fg"],
+        padding=4,
+    )
 
 
-def _mem():
+def _mem(bg: str):
     try:
         import psutil  # noqa: F401
     except ImportError:
-        return widget.TextBox("")
-    return widget.Memory(format="mem {MemUsed:.0f}{mm}", measure_mem="G", update_interval=2)
+        return widget.TextBox("", background=bg)
+    return widget.Memory(
+        format="{MemUsed:.1f}{mm}",
+        measure_mem="G",
+        update_interval=2,
+        background=bg,
+        foreground=colors["fg"],
+        padding=4,
+    )
 
 
 def init_widgets():
-    return [
-        widget.CurrentLayout(fmt="[{}]"),
-        widget.GroupBox(
-            highlight_method="line",
-            this_current_screen_border="#7aa2f7",
-            this_screen_border="#3d59a1",
-            other_current_screen_border="#bb9af7",
-            other_screen_border="#414868",
-            active="#c0caf5",
-            inactive="#565f89",
-            disable_drag=True,
-            rounded=False,
-            borderwidth=2,
+    left = colors["surface"]
+    right = colors["surface2"]
+
+    widgets = [
+        # layout + workspaces
+        _pill_start(left),
+        widget.CurrentLayoutIcon(
+            scale=0.55,
+            background=left,
+            foreground=colors["blue"],
+            padding=4,
         ),
-        widget.Prompt(foreground="#9ece6a"),
-        widget.WindowName(foreground="#c0caf5", max_chars=60),
+        widget.CurrentLayout(
+            fmt="{}",
+            background=left,
+            foreground=colors["fg_dim"],
+            padding=4,
+        ),
+        _pill_end(left),
+        widget.Spacer(length=6),
+        _pill_start(left),
+        widget.GroupBox(
+            font=FONT,
+            fontsize=FONT_SIZE,
+            margin_y=3,
+            margin_x=4,
+            padding_y=4,
+            padding_x=6,
+            borderwidth=2,
+            disable_drag=True,
+            rounded=True,
+            highlight_method="block",
+            this_current_screen_border=colors["blue"],
+            this_screen_border=colors["blue"],
+            other_current_screen_border=colors["magenta"],
+            other_screen_border=colors["muted"],
+            urgent_border=colors["red"],
+            active=colors["fg"],
+            inactive=colors["muted"],
+            background=left,
+            foreground=colors["fg"],
+            hide_unused=False,
+        ),
+        _pill_end(left),
+        widget.Spacer(length=8),
+        widget.Prompt(
+            font=FONT,
+            fontsize=FONT_SIZE,
+            foreground=colors["green"],
+            background=colors["bg"],
+            padding=8,
+        ),
+        widget.WindowName(
+            font=FONT,
+            fontsize=FONT_SIZE,
+            foreground=colors["fg_dim"],
+            background=colors["bg"],
+            max_chars=48,
+            padding=8,
+        ),
         widget.Chord(
-            chords_colors={"launch": ("#f7768e", "#1a1b26")},
+            chords_colors={"launch": (colors["red"], colors["bg"])},
             name_transform=lambda name: name.upper(),
+            background=colors["bg"],
         ),
         widget.Spacer(),
-        _sep(),
-        _cpu(),
-        _mem(),
-        _sep(),
-        _volume(),
-        _sep(),
-        _battery(),
-        _sep(),
+        # system pills
+        _pill_start(right),
+        _icon("󰍛", colors["cyan"], right),
+        _cpu(right),
+        _icon("󰘚", colors["magenta"], right),
+        _mem(right),
+        _pill_end(right),
+        widget.Spacer(length=6),
+        _pill_start(right),
+        _icon("󰕾", colors["green"], right),
+        _volume(right),
+        widget.Spacer(length=6, background=right),
+        _battery(right),
+        _pill_end(right),
+        widget.Spacer(length=6),
+        _pill_start(right),
         _tray(),
-        widget.Clock(format="%Y-%m-%d %a %H:%M"),
-        widget.QuickExit(default_text="[exit]", countdown_format="[{}]", foreground="#f7768e"),
+        _pill_end(right),
+        widget.Spacer(length=6),
+        _pill_start(left),
+        _icon("󰥔", colors["blue"], left),
+        widget.Clock(
+            format="%a %d %b  %H:%M",
+            background=left,
+            foreground=colors["fg"],
+            padding=6,
+        ),
+        _pill_end(left),
+        widget.Spacer(length=4),
+        widget.QuickExit(
+            default_text="󰐥 ",
+            countdown_format="{} ",
+            foreground=colors["red"],
+            background=colors["bg"],
+            padding=8,
+            fontsize=FONT_SIZE + 2,
+        ),
     ]
+    return widgets
 
 
 screens = [
     Screen(
         top=bar.Bar(
             init_widgets(),
-            28,
-            background="#1a1b26",
-            margin=[4, 4, 0, 4],
+            34,
+            background=colors["bg"],
+            margin=[6, 10, 0, 10],
+            border_width=[0, 0, 0, 0],
+            opacity=0.95,
         ),
         wallpaper=wallpaper if os.path.isfile(wallpaper) else None,
         wallpaper_mode="fill",
