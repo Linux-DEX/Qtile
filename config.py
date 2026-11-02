@@ -378,14 +378,13 @@ def init_widgets():
 
 screens = [
     Screen(
-        # tmux status-position bottom
-        bottom=bar.Bar(
+        top=bar.Bar(
             init_widgets(),
             26,
             background=colors["bg"],
             margin=0,
-            border_width=[1, 0, 0, 0],
-            border_color=[colors["surface"], colors["bg"], colors["bg"], colors["bg"]],
+            border_width=[0, 0, 1, 0],
+            border_color=[colors["bg"], colors["bg"], colors["surface"], colors["bg"]],
         ),
         wallpaper=wallpaper if os.path.isfile(wallpaper) else None,
         wallpaper_mode="fill",
