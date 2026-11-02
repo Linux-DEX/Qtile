@@ -35,6 +35,11 @@ pacman -S --needed --noconfirm \
 
 mkdir -p /usr/share/wayland-sessions /usr/share/xsessions
 
+# Package ships qtile-generic.desktop in BOTH session dirs → duplicate menu entries.
+# Drop those; keep one clearly named Wayland + one X11 entry only.
+rm -f /usr/share/wayland-sessions/qtile-generic.desktop
+rm -f /usr/share/xsessions/qtile-generic.desktop
+
 cat > /usr/share/wayland-sessions/qtile-wayland.desktop << 'EOF'
 [Desktop Entry]
 Name=Qtile (Wayland)
