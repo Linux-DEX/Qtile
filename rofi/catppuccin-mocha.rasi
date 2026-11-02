@@ -1,21 +1,188 @@
-/* Catppuccin Mocha — matches Qtile bar / tmux status */
+/* Catppuccin Mocha — same palette as Qtile bar / tmux */
 * {
-    bg:           #1e1e2e;
-    bg-alt:       #313244;
-    fg:           #cdd6f4;
-    fg-dim:       #a6adc8;
-    blue:         #89b4fa;
-    teal:         #94e2d5;
-    lavender:     #b4befe;
-    peach:        #fab387;
-    red:          #f38ba8;
-    green:        #a6e3a1;
-    yellow:       #f9e2af;
-    mauve:        #cba6f7;
-    overlay:      #6c7086;
-    surface:      #313244;
-    transparent:  #00000000;
+    /* palette */
+    bg:       #1e1e2e;
+    bg-alt:   #313244;
+    fg:       #cdd6f4;
+    fg-dim:   #a6adc8;
+    blue:     #89b4fa;
+    teal:     #94e2d5;
+    lavender: #b4befe;
+    peach:    #fab387;
+    red:      #f38ba8;
+    green:    #a6e3a1;
+    yellow:   #f9e2af;
+    mauve:    #cba6f7;
+    overlay:  #6c7086;
+    surface:  #313244;
 
-    background-color: @transparent;
+    /* override rofi built-in aliases (these caused white/gray) */
+    background:                  @bg;
+    foreground:                  @fg;
+    lightbg:                     @bg-alt;
+    lightfg:                     @fg;
+    separatorcolor:              @overlay;
+    border-color:                @surface;
+
+    normal-background:           @bg;
+    normal-foreground:           @fg;
+    alternate-normal-background: @bg;
+    alternate-normal-foreground: @fg;
+
+    selected-normal-background:  @bg-alt;
+    selected-normal-foreground:  @peach;
+
+    urgent-background:           @bg;
+    urgent-foreground:           @red;
+    alternate-urgent-background: @bg;
+    alternate-urgent-foreground: @red;
+    selected-urgent-background:  @red;
+    selected-urgent-foreground:  @bg;
+
+    active-background:           @bg;
+    active-foreground:           @blue;
+    alternate-active-background: @bg;
+    alternate-active-foreground: @blue;
+    selected-active-background:  @blue;
+    selected-active-foreground:  @bg;
+
+    background-color:            @bg;
+    text-color:                  @fg;
+    spacing:                     2;
+}
+
+window {
+    width:            640px;
+    border:           1px;
+    border-color:     @surface;
+    background-color: @bg;
+    padding:          12px;
+}
+
+mainbox {
+    background-color: @bg;
+    spacing:          10px;
+    children:         [ inputbar, mode-switcher, listview ];
+}
+
+inputbar {
+    background-color: @bg-alt;
     text-color:       @fg;
+    border:           0;
+    padding:          10px 12px;
+    spacing:          8px;
+    children:         [ prompt, entry ];
+}
+
+prompt {
+    background-color: @blue;
+    text-color:       @bg;
+    padding:          4px 10px;
+}
+
+entry {
+    background-color: @bg-alt;
+    text-color:       @fg;
+    placeholder:      "search everything…";
+    placeholder-color: @overlay;
+    padding:          4px 0;
+    cursor:           text;
+}
+
+mode-switcher {
+    background-color: @bg;
+    spacing:          4px;
+}
+
+button {
+    background-color: @bg-alt;
+    text-color:       @overlay;
+    padding:          6px 10px;
+    border:           0;
+}
+
+button selected {
+    background-color: @bg-alt;
+    text-color:       @peach;
+}
+
+listview {
+    background-color: @bg;
+    columns:          1;
+    lines:            10;
+    spacing:          2px;
+    padding:          4px 0 0 0;
+    scrollbar:        false;
+}
+
+element {
+    background-color: @bg;
+    text-color:       @fg;
+    padding:          8px 10px;
+    border:           0;
+    spacing:          8px;
+    children:         [ element-icon, element-text ];
+}
+
+element-icon {
+    size:             22px;
+    background-color: inherit;
+    text-color:       inherit;
+}
+
+element-text {
+    background-color: inherit;
+    text-color:       inherit;
+    vertical-align:   0.5;
+}
+
+element normal.normal,
+element alternate.normal {
+    background-color: @bg;
+    text-color:       @fg;
+}
+
+element selected.normal,
+element selected.alternate {
+    background-color: @bg-alt;
+    text-color:       @peach;
+}
+
+element normal.urgent,
+element alternate.urgent {
+    background-color: @bg;
+    text-color:       @red;
+}
+
+element selected.urgent {
+    background-color: @red;
+    text-color:       @bg;
+}
+
+element normal.active,
+element alternate.active {
+    background-color: @bg;
+    text-color:       @blue;
+}
+
+element selected.active {
+    background-color: @blue;
+    text-color:       @bg;
+}
+
+message {
+    background-color: @bg-alt;
+    text-color:       @teal;
+    padding:          8px;
+}
+
+textbox {
+    background-color: @bg-alt;
+    text-color:       @teal;
+}
+
+error-message {
+    background-color: @bg;
+    text-color:       @red;
+    padding:          12px;
 }

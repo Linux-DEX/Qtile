@@ -48,12 +48,12 @@ def rofi_cmd(mode: str = "combi") -> str:
     parts = [rofi_bin(), "-show", mode]
     if mode == "combi":
         parts.extend(["-modes", "combi", "-combi-modes", "drun,run,window,filebrowser"])
+    theme = os.path.join(cfg_dir, "rofi", "catppuccin-mocha.rasi")
+    # -theme alone with absolute path; -config only for modi/font settings
     if os.path.isfile(rofi_config):
-        # theme lives next to config.rasi
         parts.extend(["-config", rofi_config])
-        theme = os.path.join(cfg_dir, "rofi", "catppuccin-mocha.rasi")
-        if os.path.isfile(theme):
-            parts.extend(["-theme", theme])
+    if os.path.isfile(theme):
+        parts.extend(["-theme", theme])
     return " ".join(parts)
 
 
