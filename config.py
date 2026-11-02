@@ -238,7 +238,8 @@ def _tray():
 
 
 def _volume(bg: str):
-    kwargs = dict(
+    # Use ALSA Volume (works with pipewire-alsa). PulseVolume needs extra pkgs.
+    return widget.Volume(
         fmt="{}",
         update_interval=0.2,
         step=5,
@@ -252,9 +253,6 @@ def _volume(bg: str):
             "Button5": volume_adjust("5%-"),
         },
     )
-    if hasattr(widget, "PulseVolume"):
-        return widget.PulseVolume(limit_max_volume=True, **kwargs)
-    return widget.Volume(**kwargs)
 
 
 def _battery(bg: str):
