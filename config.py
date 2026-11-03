@@ -82,21 +82,46 @@ def clipboard_cmd() -> str:
     return "true"
 
 
+def power_menu_cmd() -> str:
+    theme = os.path.join(cfg_dir, "rofi", "catppuccin-mocha.rasi")
+    theme_flag = f" -theme {theme}" if os.path.isfile(theme) else ""
+    # ponytail: one-shot rofi case; ceiling is fixed action list
+    script = f"""
+choice=$(printf 'lock\\nlogout\\nreboot\\nshutdown' | {rofi_bin()} -dmenu -p power{theme_flag}) || exit 0
+case "$choice" in
+  lock) {lock_cmd()} ;;
+  logout) qtile cmd-obj -o cmd -f shutdown ;;
+  reboot) systemctl reboot ;;
+  shutdown) systemctl poweroff ;;
+esac
+"""
+    return "sh -c " + repr(script.strip())
+
+
+def _notify(summary: str, body: str = "") -> None:
+    if shutil.which("notify-send"):
+        subprocess.Popen(["notify-send", "-a", "qtile", summary, body])
+
+
 @lazy.function
 def take_screenshot(qtile):
     dest_dir = os.path.expanduser("~/Pictures")
     os.makedirs(dest_dir, exist_ok=True)
     path = os.path.join(dest_dir, f"shot-{int(time.time())}.png")
-    if qtile.core.name == "wayland":
-        if shutil.which("grim") and shutil.which("slurp"):
-            subprocess.Popen(["sh", "-c", f'grim -g "$(slurp)" "{path}"'])
-        elif shutil.which("grim"):
-            subprocess.Popen(["grim", path])
-    else:
-        if shutil.which("scrot"):
-            subprocess.Popen(["scrot", "-s", path])
-        elif shutil.which("flameshot"):
-            subprocess.Popen(["flameshot", "gui"])
+    if qtile.core.name == "wayland" and shutil.which("grim"):
+        region = ' -g "$(slurp)"' if shutil.which("slurp") else ""
+        if shutil.which("wl-copy"):
+            cmd = f'grim{region} - | tee "{path}" | wl-copy --type image/png'
+        else:
+            cmd = f'grim{region} "{path}"'
+        if shutil.which("notify-send"):
+            cmd += f' && notify-send -a qtile Screenshot "{path}"'
+        subprocess.Popen(["sh", "-c", cmd])
+    elif shutil.which("scrot"):
+        subprocess.Popen(["scrot", "-s", path])
+        _notify("Screenshot", path)
+    elif shutil.which("flameshot"):
+        subprocess.Popen(["flameshot", "gui"])
 
 
 @lazy.function
@@ -237,7 +262,7 @@ keys = [
     Key([mod], "t", lazy.window.toggle_floating(), desc="Floating"),
     Key([mod], "b", lazy.hide_show_bar(), desc="Toggle bar"),
     Key([mod, "control"], "r", lazy.reload_config(), desc="Reload config"),
-    Key([mod, "shift"], "e", lazy.shutdown(), desc="Log out of Qtile"),
+    Key([mod, "shift"], "e", lazy.spawn(power_menu_cmd()), desc="Power menu"),
     Key([mod], "r", lazy.spawncmd(), desc="Bar command prompt"),
     # launchers / apps
     Key([mod], "space", lazy.spawn(rofi_cmd("combi")), desc="Search everything"),
@@ -304,6 +329,12 @@ for i in groups:
                 lazy.window.togroup(i.name, switch_group=True),
                 desc=f"Move to group {i.name}",
             ),
+            Key(
+                [mod, "control"],
+                i.name,
+                lazy.window.togroup(i.name, switch_group=False),
+                desc=f"Send to group {i.name}",
+            ),
         ]
     )
 
@@ -368,20 +399,25 @@ def _tray():
 
 
 def _volume():
-    return widget.Volume(
+    cbs = {
+        "Button1": lazy.spawn("pavucontrol"),
+        "Button3": volume_adjust("mute"),
+        "Button4": volume_adjust("5%+"),
+        "Button5": volume_adjust("5%-"),
+    }
+    kwargs = dict(
         fmt="{}",
-        update_interval=0.2,
-        step=5,
+        update_interval=1,
         foreground=colors["green"],
         background=colors["bg"],
         padding=2,
-        mouse_callbacks={
-            "Button1": lazy.spawn("pavucontrol"),
-            "Button3": volume_adjust("mute"),
-            "Button4": volume_adjust("5%+"),
-            "Button5": volume_adjust("5%-"),
-        },
+        mouse_callbacks=cbs,
     )
+    # Prefer Pulse/PipeWire so the bar matches wpctl/pactl keybinds
+    try:
+        return widget.PulseVolume(**kwargs)
+    except Exception:
+        return widget.Volume(step=5, **kwargs)
 
 
 def _battery():
@@ -483,18 +519,13 @@ def init_widgets():
             inactive=colors["blue"],
             background=colors["bg"],
             foreground=colors["fg"],
-            hide_unused=False,
+            hide_unused=True,
             spacing=2,
         ),
         widget.Prompt(foreground=colors["green"], background=colors["bg"], padding=6),
         _pipe(),
         widget.TextBox(text="", foreground=colors["teal"], background=colors["bg"], padding=4),
         widget.WindowName(foreground=colors["teal"], background=colors["bg"], max_chars=40, padding=2),
-        widget.Chord(
-            chords_colors={"launch": (colors["red"], colors["bg"])},
-            name_transform=lambda name: name.upper(),
-            background=colors["bg"],
-        ),
         widget.Spacer(),
         widget.TextBox(text="󰍛", foreground=colors["mauve"], background=colors["bg"], padding=2),
         _cpu(),
@@ -529,8 +560,8 @@ def init_widgets():
     ]
 
 
-screens = [
-    Screen(
+def make_screen():
+    return Screen(
         top=bar.Bar(
             init_widgets(),
             26,
@@ -541,8 +572,11 @@ screens = [
         ),
         wallpaper=wallpaper if os.path.isfile(wallpaper) else None,
         wallpaper_mode="fill",
-    ),
-]
+    )
+
+
+# ponytail: fixed pool; qtile ignores extras, empty monitors get no bar if under-counted
+screens = [make_screen() for _ in range(3)]
 
 mouse = [
     Drag([mod], "Button1", lazy.window.set_position_floating(), start=lazy.window.get_position()),
@@ -566,8 +600,14 @@ floating_layout = layout.Floating(
         Match(wm_class="pinentry"),
         Match(wm_class="pinentry-gtk-2"),
         Match(wm_class="pinentry-qt"),
+        Match(wm_class="pavucontrol"),
+        Match(wm_class="blueman-manager"),
+        Match(wm_class="blueman-adapters"),
+        Match(wm_class="nm-connection-editor"),
+        Match(wm_class="PictureWindow"),
         Match(title="branchdialog"),
         Match(title="pinentry"),
+        Match(title="Picture-in-Picture"),
     ],
     border_focus=colors["peach"],
     border_normal=colors["overlay"],
