@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+import signal
 import shutil
 import subprocess
 import time
@@ -486,6 +487,116 @@ def _backlight():
         return widget.TextBox("")
 
 
+class Awake(widget.TextBox):
+    """Coffee icon: click keeps the screen on and blocks sleep; click again allows both."""
+
+    def __init__(self, **config):
+        config.setdefault("text", "\U000f0eb4")
+        config.setdefault("fontsize", FONT_SIZE)
+        config.setdefault("padding", 8)
+        config.setdefault("foreground", colors["overlay"])
+        config.setdefault("background", colors["surface"])
+        super().__init__(**config)
+        self._pid = None
+        self.add_callbacks({"Button1": self.toggle})
+
+    def _pidfile(self) -> str:
+        return os.path.join(os.environ.get("XDG_RUNTIME_DIR", "/tmp"), "qtile-awake.pid")
+
+    def _live_pid(self) -> int | None:
+        try:
+            pid = int(open(self._pidfile()).read().strip())
+        except (OSError, ValueError):
+            return None
+        try:
+            os.kill(pid, 0)
+        except OSError:
+            return None
+        return pid
+
+    def _configure(self, qtile, bar):
+        widget.TextBox._configure(self, qtile, bar)
+        self._restore()
+
+    def _paint(self, on: bool) -> None:
+        if on:
+            self.text = "\U000f0176"  # coffee
+            self.foreground = colors["bg"]
+            self.background = colors["green"]
+        else:
+            self.text = "\U000f0eb4"  # coffee off
+            self.foreground = colors["overlay"]
+            self.background = colors["surface"]
+        if self.layout:
+            self.layout.colour = self.foreground
+            self.layout.text = self.text
+        if self.bar:
+            self.bar.draw()
+
+    def _restore(self):
+        self._pid = self._live_pid()
+        if self._pid:
+            self._hold(True)
+        self._paint(bool(self._pid))
+
+    def _hold(self, on: bool) -> None:
+        mgr = getattr(self.qtile.core, "idle_inhibitor_manager", None)
+        if mgr is not None:
+            (mgr.add_global_inhibitor if on else mgr.remove_global_inhibitor)()
+        # ponytail: SIGSTOP swayidle so the 5-minute lock cannot fire while this is on.
+        # Ceiling: only the autostart swayidle. Drop the signal if a compositor inhibitor alone pauses it.
+        subprocess.run(["pkill", "-STOP" if on else "-CONT", "-x", "swayidle"], check=False)
+
+    def toggle(self):
+        if self._live_pid():
+            self._off()
+        else:
+            self._on()
+
+    def _on(self):
+        self._hold(True)
+        proc = subprocess.Popen(
+            [
+                "systemd-inhibit",
+                "--what=idle:sleep:handle-lid-switch",
+                "--who=Awake",
+                "--why=Keep screen on",
+                "--mode=block",
+                "sleep",
+                "infinity",
+            ],
+            start_new_session=True,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
+        self._pid = proc.pid
+        with open(self._pidfile(), "w") as fh:
+            fh.write(str(proc.pid))
+        self._paint(True)
+
+    def _off(self):
+        self._hold(False)
+        pid = self._pid or self._live_pid()
+        if pid:
+            try:
+                os.killpg(pid, signal.SIGTERM)
+            except OSError:
+                try:
+                    os.kill(pid, signal.SIGTERM)
+                except OSError:
+                    pass
+        self._pid = None
+        try:
+            os.remove(self._pidfile())
+        except OSError:
+            pass
+        self._paint(False)
+
+
+def _awake():
+    return Awake()
+
+
 def init_widgets():
     return [
         widget.TextBox(
@@ -547,6 +658,7 @@ def init_widgets():
         widget.TextBox(text="", foreground=colors["lavender"], background=colors["bg"], padding=2),
         widget.Clock(format="%I:%M %p", foreground=colors["lavender"], background=colors["bg"], padding=4),
         _pipe(),
+        _awake(),
         _tray(),
         widget.QuickExit(
             default_text="󰐥",
