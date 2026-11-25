@@ -364,7 +364,7 @@ if [[ "${SKIP_AUR:-0}" != "1" ]]; then
   fi
   if command -v paru >/dev/null 2>&1; then
     echo "==> AUR packages"
-    for p in hunk-bin; do
+    for p in hunk-bin qtile-extras; do
       if pacman -Qq "$p" &>/dev/null; then
         continue
       fi

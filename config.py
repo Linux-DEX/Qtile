@@ -396,7 +396,22 @@ def _pipe():
 
 
 def _tray():
-    return widget.StatusNotifier(background=colors["bg"], padding=4)
+    # Stock StatusNotifier has no DBus menus. nm-applet exposes only a menu
+    # (no Activate), so clicks do nothing without qtile-extras.
+    try:
+        from qtile_extras.widget import StatusNotifier as Tray
+    except ImportError:
+        return widget.StatusNotifier(background=colors["bg"], padding=4)
+    tray = Tray(
+        background=colors["bg"],
+        padding=4,
+        menu_border_width=0,
+        # Wayland: default 0.5s auto-hide closes before pointer reaches the popup
+        hide_after=5,
+    )
+    # add_callbacks() is lower-priority and won't replace Button1=activate
+    tray.mouse_callbacks["Button1"] = tray.show_menu
+    return tray
 
 
 def _volume():
@@ -414,11 +429,14 @@ def _volume():
         padding=2,
         mouse_callbacks=cbs,
     )
-    # Prefer Pulse/PipeWire so the bar matches wpctl/pactl keybinds
+    # Prefer Pulse/PipeWire so the bar matches wpctl/pactl keybinds.
+    # Qtile returns ImportErrorWidget instead of raising — check deps first.
     try:
-        return widget.PulseVolume(**kwargs)
-    except Exception:
+        import pulsectl  # noqa: F401
+        import pulsectl_asyncio  # noqa: F401
+    except ImportError:
         return widget.Volume(step=5, **kwargs)
+    return widget.PulseVolume(**kwargs)
 
 
 def _battery():

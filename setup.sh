@@ -45,6 +45,8 @@ pacman -S --needed --noconfirm \
   qtile \
   python-dbus-fast \
   python-psutil \
+  python-pulsectl \
+  python-pulsectl-asyncio \
   python-pyxdg \
   python-pywayland \
   xorg-server \
@@ -111,6 +113,17 @@ chmod 700 "$ROOT_SCRIPT"
 echo "==> Installing packages + login sessions (sudo)"
 sudo bash "$ROOT_SCRIPT"
 
+# StatusNotifier menus (nm-applet wifi click) need qtile-extras (AUR / PyPI)
+if ! python -c "import qtile_extras" >/dev/null 2>&1; then
+  echo "==> Installing qtile-extras (tray menus)"
+  if command -v paru >/dev/null 2>&1 && paru -S --needed --noconfirm qtile-extras; then
+    :
+  else
+    # ponytail: paru may be broken vs libalpm; user-site is enough for qtile
+    python -m pip install --user --break-system-packages "qtile-extras==0.37.1"
+  fi
+fi
+
 # ---------------------------------------------------------------------------
 # deploy this repo → ~/.config/qtile
 # ---------------------------------------------------------------------------
@@ -163,6 +176,7 @@ fi
 # ---------------------------------------------------------------------------
 echo "==> Validate"
 python -c "import libqtile; print('libqtile OK')"
+python -c "import qtile_extras; from qtile_extras.widget import StatusNotifier; print('qtile_extras OK')"
 test -f "$TARGET_QTILE/config.py"
 [[ -f /usr/share/wayland-sessions/qtile-wayland.desktop ]] || true
 [[ -f /usr/share/xsessions/qtile.desktop ]] || true
