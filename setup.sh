@@ -45,6 +45,7 @@ pacman -S --needed --noconfirm \
   qtile \
   python-dbus-fast \
   python-psutil \
+  lm_sensors \
   python-pulsectl \
   python-pulsectl-asyncio \
   python-pyxdg \

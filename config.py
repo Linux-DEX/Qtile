@@ -665,6 +665,41 @@ def _cpu():
     )
 
 
+def _temp():
+    try:
+        import psutil  # noqa: F401
+    except ImportError:
+        return widget.TextBox("")
+    temps = {}
+    try:
+        temps = psutil.sensors_temperatures() or {}
+    except Exception:
+        return widget.TextBox("")
+    if not temps:
+        return widget.TextBox("")
+    # Prefer AMD CPU package temp when present
+    tag = None
+    for name, entries in temps.items():
+        for entry in entries:
+            label = (entry.label or "").strip()
+            if label == "Tctl" or (name == "k10temp" and label):
+                tag = label or None
+                break
+        if tag:
+            break
+    return widget.ThermalSensor(
+        format="{temp:.0f}{unit}",
+        tag_sensor=tag,
+        threshold=80,
+        foreground=colors["red"],
+        foreground_alert=colors["red"],
+        background=colors["bg"],
+        padding=4,
+        update_interval=2,
+        decorations=_chip(),
+    )
+
+
 def _mem():
     try:
         import psutil  # noqa: F401
@@ -862,6 +897,9 @@ def init_widgets():
         widget.Spacer(),
         _icon("󰍛", colors["mauve"], decorations=_chip()),
         _cpu(),
+        _gap(6),
+        _icon("󰔏", colors["red"], decorations=_chip()),
+        _temp(),
         _gap(6),
         _icon("󰘚", colors["teal"], decorations=_chip()),
         _mem(),
