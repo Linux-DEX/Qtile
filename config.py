@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import os
+import re
+import shlex
 import signal
 import shutil
 import subprocess
@@ -105,24 +107,67 @@ def _notify(summary: str, body: str = "") -> None:
 
 
 @lazy.function
-def take_screenshot(qtile):
+def take_screenshot(qtile, full: bool = False):
     dest_dir = os.path.expanduser("~/Pictures")
     os.makedirs(dest_dir, exist_ok=True)
     path = os.path.join(dest_dir, f"shot-{int(time.time())}.png")
     if qtile.core.name == "wayland" and shutil.which("grim"):
-        region = ' -g "$(slurp)"' if shutil.which("slurp") else ""
+        region = "" if full else (' -g "$(slurp)"' if shutil.which("slurp") else "")
         if shutil.which("wl-copy"):
             cmd = f'grim{region} - | tee "{path}" | wl-copy --type image/png'
         else:
             cmd = f'grim{region} "{path}"'
         if shutil.which("notify-send"):
-            cmd += f' && notify-send -a qtile Screenshot "{path}"'
+            label = "Screenshot full" if full else "Screenshot"
+            cmd += f' && notify-send -a qtile "{label}" "{path}"'
         subprocess.Popen(["sh", "-c", cmd])
     elif shutil.which("scrot"):
-        subprocess.Popen(["scrot", "-s", path])
+        args = ["scrot", path] if full else ["scrot", "-s", path]
+        subprocess.Popen(args)
         _notify("Screenshot", path)
     elif shutil.which("flameshot"):
-        subprocess.Popen(["flameshot", "gui"])
+        subprocess.Popen(["flameshot", "gui" if not full else "full"])
+
+
+def _volume_osd() -> None:
+    """Brief OSD after media-key volume changes."""
+    if not shutil.which("notify-send"):
+        return
+    try:
+        if shutil.which("wpctl"):
+            out = subprocess.check_output(
+                ["wpctl", "get-volume", "@DEFAULT_AUDIO_SINK@"],
+                text=True,
+                stderr=subprocess.DEVNULL,
+            ).strip()
+            # "Volume: 0.50 [MUTED]" or "Volume: 0.50"
+            muted = "[MUTED]" in out
+            frac = float(out.split()[1])
+            pct = int(round(frac * 100))
+            body = "Muted" if muted else f"{pct}%"
+        elif shutil.which("pactl"):
+            mute = subprocess.check_output(
+                ["pactl", "get-sink-mute", "@DEFAULT_SINK@"],
+                text=True,
+                stderr=subprocess.DEVNULL,
+            )
+            muted = "yes" in mute
+            vol = subprocess.check_output(
+                ["pactl", "get-sink-volume", "@DEFAULT_SINK@"],
+                text=True,
+                stderr=subprocess.DEVNULL,
+            )
+            # first percent in output
+            m = re.search(r"(\d+)%", vol)
+            pct = int(m.group(1)) if m else 0
+            body = "Muted" if muted else f"{pct}%"
+        else:
+            return
+        subprocess.Popen(
+            ["notify-send", "-a", "qtile", "-r", "9910", "-t", "800", "Volume", body]
+        )
+    except (subprocess.CalledProcessError, ValueError, IndexError):
+        pass
 
 
 @lazy.function
@@ -131,7 +176,10 @@ def volume_adjust(qtile, delta: str):
         if delta == "mute":
             subprocess.Popen(["wpctl", "set-mute", "@DEFAULT_AUDIO_SINK@", "toggle"])
         else:
-            subprocess.Popen(["wpctl", "set-volume", "@DEFAULT_AUDIO_SINK@", delta])
+            subprocess.Popen(
+                ["wpctl", "set-volume", "-l", "1.0", "@DEFAULT_AUDIO_SINK@", delta]
+            )
+        _volume_osd()
         return
     if shutil.which("pactl"):
         if delta == "mute":
@@ -140,6 +188,7 @@ def volume_adjust(qtile, delta: str):
             subprocess.Popen(["pactl", "set-sink-volume", "@DEFAULT_SINK@", f"+{delta[:-2]}%"])
         else:
             subprocess.Popen(["pactl", "set-sink-volume", "@DEFAULT_SINK@", f"-{delta[:-2]}%"])
+        _volume_osd()
         return
     if shutil.which("amixer"):
         if delta == "mute":
@@ -148,6 +197,7 @@ def volume_adjust(qtile, delta: str):
             subprocess.Popen(["amixer", "-q", "set", "Master", f"{delta[:-2]}%+"])
         else:
             subprocess.Popen(["amixer", "-q", "set", "Master", f"{delta[:-2]}%-"])
+        _volume_osd()
 
 
 # ---------------------------------------------------------------------------
@@ -275,18 +325,20 @@ keys = [
     Key([mod], "v", lazy.spawn(clipboard_cmd()), desc="Clipboard history"),
     Key([mod], "period", lazy.next_screen(), desc="Next monitor"),
     Key([mod], "comma", lazy.prev_screen(), desc="Prev monitor"),
-    # scratchpad dropdown terminal
+    # scratchpads
     Key([mod], "grave", lazy.group["scratchpad"].dropdown_toggle("term"), desc="Scratchpad terminal"),
-    # media / brightness
-    Key([], "Print", take_screenshot(), desc="Screenshot"),
-    Key([], "XF86AudioRaiseVolume", volume_adjust("5%+")),
-    Key([], "XF86AudioLowerVolume", volume_adjust("5%-")),
-    Key([], "XF86AudioMute", volume_adjust("mute")),
-    Key([], "XF86AudioPlay", lazy.spawn("playerctl play-pause")),
-    Key([], "XF86AudioNext", lazy.spawn("playerctl next")),
-    Key([], "XF86AudioPrev", lazy.spawn("playerctl previous")),
-    Key([], "XF86MonBrightnessUp", lazy.spawn("brightnessctl -q s +10%")),
-    Key([], "XF86MonBrightnessDown", lazy.spawn("brightnessctl -q s 10%-")),
+    Key([mod, "shift"], "v", lazy.group["scratchpad"].dropdown_toggle("audio"), desc="Scratchpad volume"),
+    # media / brightness / screenshots
+    Key([], "Print", take_screenshot(), desc="Screenshot region"),
+    Key(["shift"], "Print", take_screenshot(full=True), desc="Screenshot full"),
+    Key([], "XF86AudioRaiseVolume", volume_adjust("5%+"), desc="Volume up"),
+    Key([], "XF86AudioLowerVolume", volume_adjust("5%-"), desc="Volume down"),
+    Key([], "XF86AudioMute", volume_adjust("mute"), desc="Volume mute"),
+    Key([], "XF86AudioPlay", lazy.spawn("playerctl play-pause"), desc="Play/pause"),
+    Key([], "XF86AudioNext", lazy.spawn("playerctl next"), desc="Next track"),
+    Key([], "XF86AudioPrev", lazy.spawn("playerctl previous"), desc="Previous track"),
+    Key([], "XF86MonBrightnessUp", lazy.spawn("brightnessctl -q s +10%"), desc="Brightness up"),
+    Key([], "XF86MonBrightnessDown", lazy.spawn("brightnessctl -q s 10%-"), desc="Brightness down"),
 ]
 
 for vt in range(1, 8):
@@ -299,24 +351,92 @@ for vt in range(1, 8):
         )
     )
 
-groups = [Group(i) for i in "123456789"]
-groups.append(
-    ScratchPad(
-        "scratchpad",
-        [
-            DropDown(
-                "term",
-                terminal,
-                opacity=0.95,
-                width=0.7,
-                height=0.55,
-                x=0.15,
-                y=0.1,
-                on_focus_lost_hide=True,
-            ),
-        ],
+# Keep names 1–9 for Super+N binds; labels are nerd-font icons in the bar.
+groups = [
+    Group(
+        "1",
+        label="󰖟",
+        matches=[Match(wm_class=re.compile(r"brave|firefox|chromium|chrome|vivaldi", re.I))],
+    ),
+    Group(
+        "2",
+        label="󰨞",
+        matches=[Match(wm_class=re.compile(r"code|cursor|jetbrains|zed|emacs|nvim", re.I))],
+    ),
+    Group(
+        "3",
+        label="",
+        matches=[Match(wm_class=re.compile(r"ghostty|alacritty|wezterm|kitty|foot", re.I))],
+    ),
+    Group(
+        "4",
+        label="󰉋",
+        matches=[Match(wm_class=re.compile(r"dolphin|thunar|nautilus|pcmanfm|nemo", re.I))],
+    ),
+    Group(
+        "5",
+        label="󰍩",
+        matches=[Match(wm_class=re.compile(r"discord|slack|telegram|signal|element|zoom", re.I))],
+    ),
+    Group(
+        "6",
+        label="󰎈",
+        matches=[Match(wm_class=re.compile(r"spotify|vlc|mpv|rhythmbox|elisa", re.I))],
+    ),
+    Group("7", label="󰃣"),
+    Group(
+        "8",
+        label="󰈙",
+        matches=[Match(wm_class=re.compile(r"libreoffice|soffice|evince|okular|zathura", re.I))],
+    ),
+    Group("9", label="󰀄"),
+]
+
+_scratch_dropdowns = [
+    DropDown(
+        "term",
+        terminal,
+        opacity=0.95,
+        width=0.7,
+        height=0.55,
+        x=0.15,
+        y=0.1,
+        on_focus_lost_hide=True,
+    ),
+    DropDown(
+        "audio",
+        "pavucontrol",
+        opacity=0.95,
+        width=0.5,
+        height=0.6,
+        x=0.25,
+        y=0.15,
+        on_focus_lost_hide=True,
+    ),
+]
+_calc = next((c for c in ("kcalc", "qalculate-gtk", "gnome-calculator") if shutil.which(c)), None)
+if _calc:
+    _scratch_dropdowns.append(
+        DropDown(
+            "calc",
+            _calc,
+            opacity=0.95,
+            width=0.35,
+            height=0.45,
+            x=0.325,
+            y=0.2,
+            on_focus_lost_hide=True,
+        )
     )
-)
+    keys.append(
+        Key(
+            [mod, "shift"],
+            "c",
+            lazy.group["scratchpad"].dropdown_toggle("calc"),
+            desc="Scratchpad calculator",
+        )
+    )
+groups.append(ScratchPad("scratchpad", _scratch_dropdowns))
 
 for i in groups:
     if isinstance(i, ScratchPad):
@@ -338,6 +458,28 @@ for i in groups:
             ),
         ]
     )
+
+
+def _format_key(key: Key) -> str:
+    names = {"mod4": "Super", "shift": "Shift", "control": "Ctrl", "mod1": "Alt"}
+    parts = [names.get(m, m) for m in key.modifiers]
+    parts.append(str(key.key))
+    return "+".join(parts)
+
+
+def keys_menu_cmd() -> str:
+    theme = os.path.join(cfg_dir, "rofi", "catppuccin-mocha.rasi")
+    theme_flag = f" -theme {theme}" if os.path.isfile(theme) else ""
+    lines = [f"{_format_key(k)}\t{k.desc}" for k in keys if getattr(k, "desc", None)]
+    body = "\n".join(lines)
+    # ponytail: static snapshot at config load; reload after keybind edits
+    script = (
+        f"printf %s {shlex.quote(body)} | {rofi_bin()} -dmenu -i -p keys{theme_flag} >/dev/null"
+    )
+    return "sh -c " + repr(script)
+
+
+keys.append(Key([mod], "F1", lazy.spawn(keys_menu_cmd()), desc="Keybind cheatsheet"))
 
 # Palette — Catppuccin Mocha
 colors = {
@@ -373,25 +515,60 @@ layouts = [
 ]
 
 FONT = "JetBrainsMono Nerd Font"
-FONT_SIZE = 13
+FONT_SIZE = 15
+ICON_SIZE = FONT_SIZE + 2
+BAR_SIZE = 32
 
 widget_defaults = dict(
     font=FONT,
     fontsize=FONT_SIZE,
-    padding=4,
+    padding=6,
     foreground=colors["fg"],
     background=colors["bg"],
 )
 extension_defaults = widget_defaults.copy()
 
 
+def _chip(colour: str | None = None):
+    """Rounded surface behind a widget cluster (qtile-extras)."""
+    try:
+        from qtile_extras.widget.decorations import RectDecoration
+    except ImportError:
+        return []
+    return [
+        RectDecoration(
+            colour=colour or colors["surface"],
+            radius=9,
+            filled=True,
+            padding_y=5,
+            padding_x=3,
+            group=True,
+        )
+    ]
+
+
+def _gap(width: int = 8):
+    return widget.Spacer(length=width)
+
+
+def _icon(text: str, colour: str, **kwargs):
+    return widget.TextBox(
+        text=text,
+        foreground=colour,
+        background=colors["bg"],
+        padding=kwargs.pop("padding", 4),
+        fontsize=ICON_SIZE,
+        **kwargs,
+    )
+
+
 def _pipe():
     return widget.TextBox(
-        text="│",
+        text="󰇙",
         foreground=colors["overlay"],
         background=colors["bg"],
-        padding=6,
-        fontsize=FONT_SIZE,
+        padding=8,
+        fontsize=FONT_SIZE - 2,
     )
 
 
@@ -404,10 +581,21 @@ def _tray():
         return widget.StatusNotifier(background=colors["bg"], padding=4)
     tray = Tray(
         background=colors["bg"],
-        padding=4,
+        padding=6,
+        icon_size=18,
+        menu_font=FONT,
+        menu_fontsize=FONT_SIZE,
+        menu_background=colors["bg"],
+        menu_foreground=colors["fg"],
+        menu_foreground_disabled=colors["overlay"],
+        menu_foreground_highlighted=colors["peach"],
+        menu_border=colors["surface"],
         menu_border_width=0,
+        highlight_colour=colors["surface"],
+        separator_colour=colors["overlay"],
         # Wayland: default 0.5s auto-hide closes before pointer reaches the popup
         hide_after=5,
+        decorations=_chip(),
     )
     # add_callbacks() is lower-priority and won't replace Button1=activate
     tray.mouse_callbacks["Button1"] = tray.show_menu
@@ -422,12 +610,14 @@ def _volume():
         "Button5": volume_adjust("5%-"),
     }
     kwargs = dict(
-        fmt="{}",
         update_interval=1,
         foreground=colors["green"],
         background=colors["bg"],
-        padding=2,
+        padding=4,
         mouse_callbacks=cbs,
+        mute_format="mute",
+        unmute_format="{volume}%",
+        decorations=_chip(),
     )
     # Prefer Pulse/PipeWire so the bar matches wpctl/pactl keybinds.
     # Qtile returns ImportErrorWidget instead of raising — check deps first.
@@ -454,7 +644,9 @@ def _battery():
         low_foreground=colors["red"],
         foreground=colors["peach"],
         background=colors["bg"],
-        padding=2,
+        padding=4,
+        fontsize=FONT_SIZE,
+        decorations=_chip(),
     )
 
 
@@ -468,7 +660,8 @@ def _cpu():
         update_interval=2,
         foreground=colors["mauve"],
         background=colors["bg"],
-        padding=2,
+        padding=4,
+        decorations=_chip(),
     )
 
 
@@ -483,7 +676,8 @@ def _mem():
         update_interval=2,
         foreground=colors["teal"],
         background=colors["bg"],
-        padding=2,
+        padding=4,
+        decorations=_chip(),
     )
 
 
@@ -498,8 +692,9 @@ def _backlight():
             format="{percent:2.0%}",
             foreground=colors["yellow"],
             background=colors["bg"],
-            padding=2,
+            padding=4,
             change_command="brightnessctl set {0}%",
+            decorations=_chip(),
         )
     except Exception:
         return widget.TextBox("")
@@ -510,10 +705,11 @@ class Awake(widget.TextBox):
 
     def __init__(self, **config):
         config.setdefault("text", "\U000f0eb4")
-        config.setdefault("fontsize", FONT_SIZE)
-        config.setdefault("padding", 8)
+        config.setdefault("fontsize", ICON_SIZE)
+        config.setdefault("padding", 10)
         config.setdefault("foreground", colors["overlay"])
-        config.setdefault("background", colors["surface"])
+        config.setdefault("background", colors["bg"])
+        config.setdefault("decorations", _chip())
         super().__init__(**config)
         self._pid = None
         self.add_callbacks({"Button1": self.toggle})
@@ -617,76 +813,99 @@ def _awake():
 
 def init_widgets():
     return [
-        widget.TextBox(
-            text=" ",
+        _gap(6),
+        _icon("", colors["blue"], padding=6, decorations=_chip(colors["surface"])),
+        widget.CurrentLayout(
+            fmt="{}",
+            foreground=colors["blue"],
+            background=colors["bg"],
+            padding=6,
+            decorations=_chip(),
+        ),
+        _gap(10),
+        widget.GroupBox(
+            font=FONT,
+            fontsize=ICON_SIZE,
+            margin_y=3,
+            margin_x=2,
+            padding_y=4,
+            padding_x=8,
+            borderwidth=2,
+            disable_drag=True,
+            rounded=True,
+            highlight_method="block",
+            highlight_color=[colors["surface"], colors["surface"]],
+            this_current_screen_border=colors["peach"],
+            this_screen_border=colors["surface"],
+            other_current_screen_border=colors["lavender"],
+            other_screen_border=colors["surface"],
+            urgent_border=colors["red"],
+            urgent_text=colors["bg"],
+            active=colors["fg"],
+            inactive=colors["overlay"],
+            background=colors["bg"],
+            foreground=colors["fg"],
+            block_highlight_text_color=colors["bg"],
+            hide_unused=True,
+            spacing=4,
+        ),
+        widget.Prompt(foreground=colors["green"], background=colors["bg"], padding=8),
+        _gap(10),
+        _icon("", colors["teal"], decorations=_chip()),
+        widget.WindowName(
+            foreground=colors["fg"],
+            background=colors["bg"],
+            max_chars=42,
+            padding=6,
+            decorations=_chip(),
+        ),
+        widget.Spacer(),
+        _icon("󰍛", colors["mauve"], decorations=_chip()),
+        _cpu(),
+        _gap(6),
+        _icon("󰘚", colors["teal"], decorations=_chip()),
+        _mem(),
+        _gap(6),
+        _icon("󰃠", colors["yellow"], decorations=_chip()),
+        _backlight(),
+        _gap(6),
+        _icon("󰕾", colors["green"], decorations=_chip()),
+        _volume(),
+        _gap(6),
+        _battery(),
+        _gap(6),
+        _icon("󰃭", colors["blue"], decorations=_chip()),
+        widget.Clock(
+            format="%d %b",
             foreground=colors["blue"],
             background=colors["bg"],
             padding=4,
-            fontsize=FONT_SIZE + 1,
+            decorations=_chip(),
         ),
-        widget.CurrentLayout(fmt="{}", foreground=colors["blue"], background=colors["bg"], padding=2),
-        _pipe(),
-        widget.GroupBox(
-            font=FONT,
-            fontsize=FONT_SIZE,
-            margin_y=2,
-            margin_x=0,
-            padding_y=2,
-            padding_x=6,
-            borderwidth=1,
-            disable_drag=True,
-            rounded=False,
-            highlight_method="line",
-            highlight_color=[colors["bg"], colors["bg"]],
-            this_current_screen_border=colors["peach"],
-            this_screen_border=colors["peach"],
-            other_current_screen_border=colors["lavender"],
-            other_screen_border=colors["overlay"],
-            urgent_border=colors["red"],
-            urgent_text=colors["red"],
-            active=colors["peach"],
-            inactive=colors["blue"],
+        _gap(6),
+        _icon("", colors["lavender"], decorations=_chip()),
+        widget.Clock(
+            format="%I:%M %p",
+            foreground=colors["lavender"],
             background=colors["bg"],
-            foreground=colors["fg"],
-            hide_unused=True,
-            spacing=2,
+            padding=6,
+            decorations=_chip(),
         ),
-        widget.Prompt(foreground=colors["green"], background=colors["bg"], padding=6),
-        _pipe(),
-        widget.TextBox(text="", foreground=colors["teal"], background=colors["bg"], padding=4),
-        widget.WindowName(foreground=colors["teal"], background=colors["bg"], max_chars=40, padding=2),
-        widget.Spacer(),
-        widget.TextBox(text="󰍛", foreground=colors["mauve"], background=colors["bg"], padding=2),
-        _cpu(),
-        _pipe(),
-        widget.TextBox(text="󰘚", foreground=colors["teal"], background=colors["bg"], padding=2),
-        _mem(),
-        _pipe(),
-        widget.TextBox(text="󰃠", foreground=colors["yellow"], background=colors["bg"], padding=2),
-        _backlight(),
-        _pipe(),
-        widget.TextBox(text="󰕾", foreground=colors["green"], background=colors["bg"], padding=2),
-        _volume(),
-        _pipe(),
-        _battery(),
-        _pipe(),
-        widget.TextBox(text="󰃭", foreground=colors["blue"], background=colors["bg"], padding=2),
-        widget.Clock(format="%d-%m-%Y", foreground=colors["blue"], background=colors["bg"], padding=2),
-        _pipe(),
-        widget.TextBox(text="", foreground=colors["lavender"], background=colors["bg"], padding=2),
-        widget.Clock(format="%I:%M %p", foreground=colors["lavender"], background=colors["bg"], padding=4),
-        _pipe(),
+        _gap(8),
         _awake(),
+        _gap(6),
         _tray(),
+        _gap(6),
         widget.QuickExit(
             default_text="󰐥",
             countdown_format="{}",
             foreground=colors["red"],
             background=colors["bg"],
-            padding=8,
-            fontsize=FONT_SIZE + 2,
+            padding=10,
+            fontsize=ICON_SIZE,
+            decorations=_chip(),
         ),
-        widget.TextBox(text=" ", background=colors["bg"], padding=2),
+        _gap(8),
     ]
 
 
@@ -694,11 +913,11 @@ def make_screen():
     return Screen(
         top=bar.Bar(
             init_widgets(),
-            26,
+            BAR_SIZE,
             background=colors["bg"],
-            margin=0,
-            border_width=[0, 0, 1, 0],
-            border_color=[colors["bg"], colors["bg"], colors["surface"], colors["bg"]],
+            margin=[4, 8, 0, 8],
+            border_width=[0, 0, 0, 0],
+            border_color=[colors["bg"], colors["bg"], colors["bg"], colors["bg"]],
         ),
         wallpaper=wallpaper if os.path.isfile(wallpaper) else None,
         wallpaper_mode="fill",

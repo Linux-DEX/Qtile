@@ -41,10 +41,12 @@ if ((is_wayland)); then
     pgrep -f "wl-paste --type image" >/dev/null 2>&1 \
       || wl-paste --type image --watch cliphist store &
   fi
-  # idle lock (5 min)
+  # dim at 4:30, lock at 5:00; resume restores brightness
   if command -v swayidle >/dev/null && command -v swaylock >/dev/null; then
     pgrep -x swayidle >/dev/null 2>&1 || swayidle -w \
+      timeout 270 'brightnessctl -q -s set 1%' \
       timeout 300 'swaylock -f -c 1e1e2e' \
+      resume 'brightnessctl -q -r' \
       before-sleep 'swaylock -f -c 1e1e2e' &
   fi
 else
@@ -52,10 +54,9 @@ else
   run dunst
 fi
 
-# tray applets
+# tray applets (Battery widget covers power; no xfce4-power-manager)
 run nm-applet --indicator
 run blueman-applet
-run xfce4-power-manager
 
 if [[ -x /usr/lib/polkit-gnome/polkit-gnome-authentication-agent-1 ]]; then
   pgrep -f polkit-gnome-authentication-agent-1 >/dev/null 2>&1 \
