@@ -1,0 +1,28 @@
+Reddit-style KDE Plasma 6 layout snapshot (from linuxdex@arch, 2026-11-26).
+
+Layout
+- Top left: weather
+- Top center: power + spacers + clock (d/M) + spacers + system tray (height 28)
+- Top right: media controller
+- Right dock: icons-only task manager (Dolphin, Ghostty, Brave, Firefox, Settings, System Monitor)
+- Desktop: 4 systemmonitor widgets (CPU/Memory/Download/Upload)
+
+Look
+- Global: Breeze Dark + AccentColorFromWallpaper
+- Colors: BreezeDarkCustom (tint ~40%, inactive effects on)
+- Plasma style: ROUNDED-COLOR
+- Icons: yet-another-monochrome-icon-set (needs Papirus-Dark inherit)
+- Cursor: volantes_cursors
+- Wallpaper: wallpaper/reddit-plasma.jpg (wallhaven odlkd7)
+
+Restore
+  bash kde-plasma-reddit/restore.sh
+
+Not vendored (too large / install separately)
+- Papirus / Papirus-Dark
+- YAMIS (restore.sh clones if missing)
+
+Window decorations
+- Theme: WhiteSur-dark-opaque (Mac traffic lights)
+- ButtonsOnLeft=XIA (close, minimize, maximize)
+- BorderSize=Normal

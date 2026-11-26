@@ -1,0 +1,9 @@
+Thu Nov 26 13:15:08 IST 2026
+right align=center h=44 len=376 float=true off=16 mode=fit  org.kde.plasma.icontaskstop align=left h=28 len=34 float=true off=24 mode=fit  org.kde.plasma.weathertop align=center h=28 len=492 float=true off=0 mode=fit  org.kde.plasma.lock_logout  org.kde.plasma.panelspacer  org.kde.plasma.digitalclock  org.kde.plasma.panelspacer  org.kde.plasma.systemtraytop align=right h=28 len=42 float=true off=24 mode=fit  org.kde.plasma.mediacontroller
+/home/linuxdex/.config/kdeglobals:AccentColorFromWallpaper=true
+/home/linuxdex/.config/kdeglobals:ColorScheme=BreezeDarkCustom
+/home/linuxdex/.config/kdeglobals:ColorSchemeHash=ab874633c289cb2250fcb5f16a056dc2d996aa4b
+/home/linuxdex/.config/kdeglobals:Theme=yet-another-monochrome-icon-set
+/home/linuxdex/.config/kdeglobals:DefaultDarkLookAndFeel=CachyOS-Nord
+/home/linuxdex/.config/kdeglobals:LookAndFeelPackage=org.kde.breezedark.desktop
+/home/linuxdex/.config/plasmarc:name=ROUNDED-COLOR
