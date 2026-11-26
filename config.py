@@ -515,7 +515,7 @@ layouts = [
 ]
 
 FONT = "JetBrainsMono Nerd Font"
-FONT_SIZE = 15
+FONT_SIZE = 14
 ICON_SIZE = FONT_SIZE + 2
 BAR_SIZE = 32
 
@@ -629,20 +629,45 @@ def _volume():
     return widget.PulseVolume(**kwargs)
 
 
+class Battery(widget.Battery):
+    """Battery widget using kernel capacity % and distinct charge-hold icon.
+
+    Stock Qtile uses energy_now/energy_full (can lag). ASUS often reports
+    status=Not charging near full while AC is connected — that is not a
+    discharge, and percent will not rise until charging resumes.
+    """
+
+    def _capacity_status(self, status):
+        try:
+            name = f"BAT{self.battery}" if isinstance(self.battery, int) else str(self.battery)
+            path = f"/sys/class/power_supply/{name}/capacity"
+            if not os.path.isfile(path):
+                path = "/sys/class/power_supply/BAT0/capacity"
+            cap = int(open(path).read().strip())
+            return status._replace(percent=max(0.0, min(cap / 100.0, 1.0)))
+        except (OSError, ValueError):
+            return status
+
+    def build_string(self, status):
+        return widget.Battery.build_string(self, self._capacity_status(status))
+
+
 def _battery():
-    return widget.Battery(
+    return Battery(
         format="{char} {percent:2.0%}",
         charge_char="󰂄",
         discharge_char="󰁹",
         full_char="󰁹",
         empty_char="󰂎",
         unknown_char="󰂑",
-        not_charging_char="󰁹",
-        update_interval=30,
+        # plugged in but charge held (ASUS near-full) — not the discharge icon
+        not_charging_char="󰚥",
+        update_interval=10,
         show_short_text=False,
         low_percentage=0.2,
         low_foreground=colors["red"],
         foreground=colors["peach"],
+        charging_foreground=colors["green"],
         background=colors["bg"],
         padding=4,
         fontsize=FONT_SIZE,
